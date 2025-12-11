@@ -4,8 +4,7 @@ import { companies, leads } from "@/db/schema";
 import { createEventCompanyCreated } from "@/db/events";
 import { z } from "zod";
 import { ilike, inArray, sql } from "drizzle-orm";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireApiAuth } from "@/lib/require-api-auth";
 
 const createCompanySchema = z.object({
   name: z.string().min(1),
@@ -15,6 +14,9 @@ const createCompanySchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
+  const authResult = await requireApiAuth()
+  if (authResult instanceof NextResponse) return authResult
+
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q")?.trim();
   const baseQuery = db.select().from(companies);
@@ -63,8 +65,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  const userId = session?.user?.id ? Number(session.user.id) : undefined;
+  const authResult = await requireApiAuth()
+  if (authResult instanceof NextResponse) return authResult
+  const session = authResult
+
+  const userId = session.user.id ? Number(session.user.id) : undefined;
   const json = await req.json();
   const parsed = createCompanySchema.safeParse(json);
   if (!parsed.success) {

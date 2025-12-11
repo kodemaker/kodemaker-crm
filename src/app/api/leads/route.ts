@@ -3,8 +3,7 @@ import { db } from "@/db/client";
 import { companies, contacts, leads } from "@/db/schema";
 import { z } from "zod";
 import { and, desc, eq, inArray } from "drizzle-orm";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireApiAuth } from "@/lib/require-api-auth";
 import { createEventLeadCreated } from "@/db/events";
 
 const createLeadSchema = z.object({
@@ -15,6 +14,9 @@ const createLeadSchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
+  const authResult = await requireApiAuth()
+  if (authResult instanceof NextResponse) return authResult
+
   const { searchParams } = new URL(req.url);
   const statusParam = searchParams.get("status");
   const allowedStatuses = new Set([
@@ -64,8 +66,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  const userId = session?.user?.id ? Number(session.user.id) : undefined;
+  const authResult = await requireApiAuth()
+  if (authResult instanceof NextResponse) return authResult
+  const session = authResult
+
+  const userId = session.user.id ? Number(session.user.id) : undefined;
   const json = await req.json();
   const parsed = createLeadSchema.safeParse(json);
   if (!parsed.success) {

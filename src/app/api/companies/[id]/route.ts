@@ -4,11 +4,15 @@ import { companies } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getCompanyDetail } from "@/db/customers";
 import { z } from "zod";
+import { requireApiAuth } from "@/lib/require-api-auth";
 
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const authResult = await requireApiAuth()
+  if (authResult instanceof NextResponse) return authResult
+
   const { id: idStr } = await params;
   const id = Number(idStr);
   if (!id) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
@@ -31,6 +35,9 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const authResult = await requireApiAuth()
+  if (authResult instanceof NextResponse) return authResult
+
   const { id: idStr } = await params;
   const id = Number(idStr);
   if (!id) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
@@ -62,6 +69,9 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const authResult = await requireApiAuth()
+  if (authResult instanceof NextResponse) return authResult
+
   const { id: idStr } = await params;
   const id = Number(idStr);
   if (!id) return NextResponse.json({ error: "Invalid id" }, { status: 400 });

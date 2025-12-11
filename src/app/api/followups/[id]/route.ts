@@ -8,6 +8,7 @@ import {
   createEventFollowupUpdated,
 } from "@/db/events";
 import { z } from "zod";
+import { requireApiAuth } from "@/lib/require-api-auth";
 
 const updateFollowupSchema = z.object({
   note: z.string().min(1).optional(),
@@ -20,6 +21,9 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const authResult = await requireApiAuth()
+  if (authResult instanceof NextResponse) return authResult
+
   const { id: idStr } = await params;
   const id = Number(idStr);
   if (!id) return NextResponse.json({ error: "Invalid id" }, { status: 400 });
@@ -91,6 +95,9 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const authResult = await requireApiAuth()
+  if (authResult instanceof NextResponse) return authResult
+
   const { id: idStr } = await params;
   const id = Number(idStr);
   if (!id) return NextResponse.json({ error: "Invalid id" }, { status: 400 });

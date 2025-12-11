@@ -4,8 +4,7 @@ import { contactCompanyHistory, contactEmails, contacts } from "@/db/schema";
 import { z } from "zod";
 import { createEventContactCreated } from "@/db/events";
 import { listContacts } from "@/db/contacts";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { requireApiAuth } from "@/lib/require-api-auth";
 
 const createContactSchema = z.object({
   firstName: z.string().min(1),
@@ -19,6 +18,9 @@ const createContactSchema = z.object({
 });
 
 export async function GET(req: NextRequest) {
+  const authResult = await requireApiAuth()
+  if (authResult instanceof NextResponse) return authResult
+
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q")?.trim() || null;
   const data = await listContacts(q);
@@ -26,8 +28,11 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await getServerSession(authOptions);
-  const userId = session?.user?.id ? Number(session.user.id) : undefined;
+  const authResult = await requireApiAuth()
+  if (authResult instanceof NextResponse) return authResult
+  const session = authResult
+
+  const userId = session.user.id ? Number(session.user.id) : undefined;
   const json = await req.json();
   const parsed = createContactSchema.safeParse(json);
   if (!parsed.success) {

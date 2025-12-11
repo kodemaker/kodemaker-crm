@@ -4,6 +4,7 @@ import { contactEmails } from '@/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { z } from 'zod'
 import { createEventContactEmailAdded } from '@/db/events'
+import { requireApiAuth } from '@/lib/require-api-auth'
 
 const createContactEmailSchema = z.object({
   email: z.string().email(),
@@ -12,6 +13,9 @@ const createContactEmailSchema = z.object({
 
 // GET /api/contacts/[id]/emails - Get all emails for a contact
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const authResult = await requireApiAuth()
+  if (authResult instanceof NextResponse) return authResult
+
   const { id: idStr } = await params
   const contactId = Number(idStr)
   if (!contactId) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
@@ -27,6 +31,9 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
 // POST /api/contacts/[id]/emails - Add new email for a contact
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const authResult = await requireApiAuth()
+  if (authResult instanceof NextResponse) return authResult
+
   const { id: idStr } = await params
   const contactId = Number(idStr)
   if (!contactId) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })

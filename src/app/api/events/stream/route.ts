@@ -1,12 +1,16 @@
-import { NextRequest } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { db, pool } from '@/db/client'
 import { events } from '@/db/schema'
 import { asc, gt } from 'drizzle-orm'
+import { requireApiAuth } from '@/lib/require-api-auth'
 
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
+  const authResult = await requireApiAuth()
+  if (authResult instanceof NextResponse) return authResult
+
   const { searchParams } = new URL(req.url)
   const sinceParam = Number(searchParams.get('since') || '0')
   let lastId = Number.isFinite(sinceParam) ? sinceParam : 0

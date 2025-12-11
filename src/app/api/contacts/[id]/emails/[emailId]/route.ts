@@ -4,6 +4,7 @@ import { contactEmails } from '@/db/schema'
 import { eq, and, ne } from 'drizzle-orm'
 import { z } from 'zod'
 import { createEventContactEmailUpdated, createEventContactEmailRemoved } from '@/db/events'
+import { requireApiAuth } from '@/lib/require-api-auth'
 
 const updateContactEmailSchema = z.object({
   email: z.string().email().optional(),
@@ -15,6 +16,9 @@ export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string; emailId: string }> }
 ) {
+  const authResult = await requireApiAuth()
+  if (authResult instanceof NextResponse) return authResult
+
   const { id: idStr, emailId: emailIdStr } = await params
   const contactId = Number(idStr)
   const emailId = Number(emailIdStr)
@@ -90,6 +94,9 @@ export async function DELETE(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string; emailId: string }> }
 ) {
+  const authResult = await requireApiAuth()
+  if (authResult instanceof NextResponse) return authResult
+
   const { id: idStr, emailId: emailIdStr } = await params
   const contactId = Number(idStr)
   const emailId = Number(emailIdStr)

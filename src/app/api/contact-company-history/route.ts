@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { contactCompanyHistory } from "@/db/schema";
 import { z } from "zod";
+import { requireApiAuth } from "@/lib/require-api-auth";
 
 const createSchema = z.object({
   contactId: z.number().int(),
@@ -12,6 +13,9 @@ const createSchema = z.object({
 });
 
 export async function POST(req: NextRequest) {
+  const authResult = await requireApiAuth()
+  if (authResult instanceof NextResponse) return authResult
+
   const json = await req.json();
   const parsed = createSchema.safeParse(json);
   if (!parsed.success) {

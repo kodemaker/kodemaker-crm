@@ -4,8 +4,12 @@ import { companies, contacts, leads, comments, users } from '@/db/schema'
 import { desc, eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { createEvent } from '@/db/events'
+import { requireApiAuth } from '@/lib/require-api-auth'
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const authResult = await requireApiAuth()
+  if (authResult instanceof NextResponse) return authResult
+
   const { id: idStr } = await params
   const id = Number(idStr)
   if (!id) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })
@@ -56,6 +60,9 @@ const updateLeadSchema = z.object({
 })
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const authResult = await requireApiAuth()
+  if (authResult instanceof NextResponse) return authResult
+
   const { id: idStr } = await params
   const id = Number(idStr)
   if (!id) return NextResponse.json({ error: 'Invalid id' }, { status: 400 })

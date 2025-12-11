@@ -4,6 +4,7 @@ import { contacts, contactEmails, emails, leads, comments, followups, events } f
 import { eq } from 'drizzle-orm'
 import { z } from 'zod'
 import { createEventContactMerged, createEventContactDeleted } from '@/db/events'
+import { requireApiAuth } from '@/lib/require-api-auth'
 
 const mergeContactSchema = z.object({
   targetContactId: z.number().int().positive(),
@@ -17,6 +18,9 @@ const mergeContactSchema = z.object({
 })
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const authResult = await requireApiAuth()
+  if (authResult instanceof NextResponse) return authResult
+
   const { id: idStr } = await params
   const sourceContactId = Number(idStr)
   if (!sourceContactId) return NextResponse.json({ error: 'Invalid source contact id' }, { status: 400 })

@@ -39,9 +39,9 @@ export function LeadsSection({ leads, title = "Leads", headerAction }: LeadsSect
 
   return (
     <section>
-      <div className="mb-2 flex items-center justify-between">
-        <h2 className="text-lg font-medium">{title}</h2>
-        {headerAction ?? null}
+      <div className="mb-2 flex items-center justify-between gap-2">
+        <h2 className="text-lg font-medium break-words min-w-0 flex-1">{title}</h2>
+        {headerAction ? <div className="shrink-0">{headerAction}</div> : null}
       </div>
       {leads.length > 0 && (
         <div className="mb-2 flex flex-wrap gap-2 text-xs text-muted-foreground">

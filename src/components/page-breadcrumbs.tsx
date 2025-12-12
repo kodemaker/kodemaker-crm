@@ -15,7 +15,7 @@ type Crumb = { label: string; href?: string };
 export function PageBreadcrumbs({ items }: { items: Crumb[] }) {
   if (!items?.length) return null;
   return (
-    <div className="mx-auto max-w-6xl px-0 py-2">
+    <div className="mx-auto max-w-6xl px-4 md:px-0 py-2">
       <Breadcrumb>
         <BreadcrumbList>
           {items.map((c, idx) => (

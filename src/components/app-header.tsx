@@ -24,7 +24,7 @@ export function AppHeader() {
   }, [pathname]);
 
   return (
-    <header className="sticky top-0 z-40 border-b bg-primary text-primary-foreground">
+    <header className="sticky top-0 z-40 border-b bg-primary text-primary-foreground overflow-hidden">
       <div className="mx-auto max-w-6xl px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-3">
           {!isLoginPage && (

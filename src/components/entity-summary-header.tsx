@@ -39,9 +39,9 @@ export function EntitySummaryHeader({
   return (
     <section>
       <div className="flex items-start justify-between gap-4">
-        <h1 className="text-2xl font-semibold">{title}</h1>
+        <h1 className="text-2xl font-semibold break-words min-w-0 flex-1">{title}</h1>
         {editHref ? (
-          <Button asChild>
+          <Button asChild className="shrink-0">
             <Link href={editHref}>
               <Pencil className="h-4 w-4" />
               <span>Endre</span>

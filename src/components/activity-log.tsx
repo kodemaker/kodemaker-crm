@@ -311,8 +311,8 @@ export function ActivityLog({
                 value={newFollowupNote}
                 onChange={(e) => setNewFollowupNote(e.target.value)}
               />
-              <div className="flex items-start gap-3">
-                <div className="flex-1">
+              <div className="flex flex-col sm:flex-row items-start gap-3">
+                <div className="w-full sm:flex-1">
                   <label className="block text-xs text-muted-foreground mb-1">Frist</label>
                   <DatePicker
                     value={newFollowupDue}
@@ -320,7 +320,7 @@ export function ActivityLog({
                     placeholder="Velg dato"
                   />
                 </div>
-                <div className="flex-1">
+                <div className="w-full sm:flex-1">
                   <label className="block text-xs text-muted-foreground mb-1">Tildel</label>
                   <Popover open={userPopoverOpen} onOpenChange={setUserPopoverOpen}>
                     <PopoverTrigger asChild>

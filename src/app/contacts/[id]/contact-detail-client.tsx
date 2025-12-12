@@ -15,7 +15,7 @@ export function ContactDetailClient() {
   const id = Number(params.id);
   const { data } = useSWR<GetContactDetailResponse>(id ? `/api/contacts/${id}` : null);
 
-  if (!data) return <div className="p-6">Laster...</div>;
+  if (!data) return <div className="p-4 md:p-6">Laster...</div>;
   const { contact, currentCompany, previousCompanies, leads, emails, contactEmails } = data;
 
   const crumbs = [
@@ -32,7 +32,7 @@ export function ContactDetailClient() {
   ];
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       <PageBreadcrumbs items={crumbs} />
       <ContactHeader
         contact={contact}

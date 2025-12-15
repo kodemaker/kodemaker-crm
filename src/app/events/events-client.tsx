@@ -2,14 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
-import { Switch } from "@/components/ui/switch";
-import { Label } from "@/components/ui/label";
 import { ActivityEventItem } from "@/components/hendelseslogg/activity-event-item";
 import { EventFiltersBar, type EventFilters } from "@/components/hendelseslogg/event-filters";
 import type { ApiActivityEvent, GetActivityEventsResponse } from "@/types/api";
 
 export function EventsClient() {
-  const [paused, setPaused] = useState(false);
   const [filters, setFilters] = useState<EventFilters>({
     types: [],
     companyId: undefined,
@@ -45,12 +42,7 @@ export function EventsClient() {
   }, [filters]);
 
   const { data, isLoading } = useSWR<GetActivityEventsResponse>(
-    `/api/activity-events${queryString}`,
-    null,
-    {
-      revalidateOnFocus: !paused,
-      revalidateOnReconnect: !paused,
-    }
+    `/api/activity-events${queryString}`
   );
 
   const [live, setLive] = useState<ApiActivityEvent[]>([]);
@@ -112,7 +104,7 @@ export function EventsClient() {
     let cancelled = false;
 
     const connect = () => {
-      if (paused || cancelled) return;
+      if (cancelled) return;
       const since = lastIdRef.current || 0;
       es = new EventSource(`/api/activity-events/stream?since=${since}`);
 
@@ -141,7 +133,7 @@ export function EventsClient() {
       };
 
       es.onerror = () => {
-        if (!paused && !cancelled) {
+        if (!cancelled) {
           // Backoff reconnect after small delay
           setTimeout(connect, 2000);
         }
@@ -155,7 +147,7 @@ export function EventsClient() {
       cancelled = true;
       es?.close();
     };
-  }, [paused, data]);
+  }, [data]);
 
   const handleFiltersChange = useCallback((newFilters: EventFilters) => {
     setFilters(newFilters);
@@ -164,19 +156,7 @@ export function EventsClient() {
   return (
     <div className="flex flex-col h-full">
       <div className="p-6 pb-0">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-2xl font-semibold">Hendelseslogg</h1>
-          <div className="flex items-center gap-2">
-            <Switch
-              id="auto-update"
-              checked={!paused}
-              onCheckedChange={(checked) => setPaused(!checked)}
-            />
-            <Label htmlFor="auto-update" className="text-sm cursor-pointer">
-              Auto-oppdatering {paused ? "(Av)" : "(På)"}
-            </Label>
-          </div>
-        </div>
+        <h1 className="text-2xl font-semibold mb-4">Hendelseslogg</h1>
       </div>
 
       <EventFiltersBar filters={filters} onChange={handleFiltersChange} />

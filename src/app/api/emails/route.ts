@@ -14,6 +14,7 @@ import {
   createEventContactCreated,
   createEventEmailReceived,
 } from "@/db/events";
+import { createActivityEventEmailReceived } from "@/db/activity-events";
 import { desc, eq, inArray } from "drizzle-orm";
 import { createHmac } from "crypto";
 import { parsePostmarkInboundEmail, postmarkInboundSchema } from "./parse-mail";
@@ -321,6 +322,12 @@ export async function POST(req: NextRequest) {
       parsedMail.subject ?? "",
       parsedMail.mode
     );
+    await createActivityEventEmailReceived({
+      emailId: createdEmail.id,
+      actorUserId: createdByUser.id,
+      companyId,
+      contactId,
+    });
 
     logger.info(
       { route: "/api/emails", method: "POST" },

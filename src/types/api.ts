@@ -115,3 +115,52 @@ export type ListContactsItem = {
   emails: string;
   company?: { id: number; name: string } | null;
 };
+
+// Activity Events (Hendelseslogg)
+export type ActivityEventType =
+  | "comment_created"
+  | "lead_created"
+  | "lead_status_changed"
+  | "email_received";
+
+export type ApiActivityEvent = {
+  id: number;
+  eventType: ActivityEventType;
+  createdAt: string;
+  actorUser: { id: number; firstName: string; lastName: string } | null;
+  oldStatus: LeadStatus | null;
+  newStatus: LeadStatus | null;
+  // Related data (populated based on eventType)
+  comment: {
+    id: number;
+    content: string;
+    createdAt: string;
+    companyId: number | null;
+    contactId: number | null;
+    leadId: number | null;
+  } | null;
+  lead: {
+    id: number;
+    description: string;
+    status: LeadStatus;
+    companyId: number;
+    contactId: number | null;
+  } | null;
+  email: {
+    id: number;
+    subject: string | null;
+    content: string;
+    createdAt: string;
+    recipientContactId: number | null;
+    recipientCompanyId: number | null;
+    sourceUserId: number | null;
+  } | null;
+  // Context entities
+  company: { id: number; name: string } | null;
+  contact: { id: number; firstName: string | null; lastName: string | null } | null;
+};
+
+export type GetActivityEventsResponse = {
+  events: ApiActivityEvent[];
+  hasMore: boolean;
+};

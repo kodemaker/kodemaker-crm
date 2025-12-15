@@ -4,6 +4,7 @@ import { comments, companies, contacts, leads, users } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { createEvent } from "@/db/events";
+import { createActivityEventLeadStatusChanged } from "@/db/activity-events";
 import { requireApiAuth } from "@/lib/require-api-auth";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -62,6 +63,8 @@ const updateLeadSchema = z.object({
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const authResult = await requireApiAuth();
   if (authResult instanceof NextResponse) return authResult;
+  const session = authResult;
+  const userId = Number(session.user.id);
 
   const { id: idStr } = await params;
   const id = Number(idStr);
@@ -76,6 +79,14 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       }
     );
   }
+
+  // Fetch current lead to capture old status before update
+  const [currentLead] = await db
+    .select({ status: leads.status, companyId: leads.companyId, contactId: leads.contactId })
+    .from(leads)
+    .where(eq(leads.id, id))
+    .limit(1);
+
   const [updated] = await db
     .update(leads)
     .set({ ...parsed.data })
@@ -89,6 +100,18 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       .filter(Boolean)
       .join(" & ");
     await createEvent("lead", updated.id, `Oppdatert lead (${changed || "ingen endringer"})`);
+
+    // Create activity event if status changed
+    if (parsed.data.status && currentLead && currentLead.status !== parsed.data.status) {
+      await createActivityEventLeadStatusChanged({
+        leadId: updated.id,
+        actorUserId: userId,
+        oldStatus: currentLead.status,
+        newStatus: parsed.data.status,
+        companyId: currentLead.companyId,
+        contactId: currentLead.contactId ?? undefined,
+      });
+    }
   }
   return NextResponse.json(updated);
 }

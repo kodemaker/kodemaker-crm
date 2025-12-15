@@ -5,6 +5,7 @@ import { z } from "zod";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { requireApiAuth } from "@/lib/require-api-auth";
 import { createEventLeadCreated } from "@/db/events";
+import { createActivityEventLeadCreated } from "@/db/activity-events";
 
 const createLeadSchema = z.object({
   companyId: z.number().int(),
@@ -103,5 +104,11 @@ export async function POST(req: NextRequest) {
     parsed.data.contactId,
     parsed.data.description
   );
+  await createActivityEventLeadCreated({
+    leadId: created.id,
+    actorUserId: userId,
+    companyId: company.id,
+    contactId: parsed.data.contactId,
+  });
   return NextResponse.json(created);
 }

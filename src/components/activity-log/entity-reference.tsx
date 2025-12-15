@@ -1,22 +1,15 @@
-import type { LeadStatus } from "@/types/api";
-
 type EntityReferenceProps = {
   contact?: { id: number; firstName: string | null; lastName: string | null } | null;
   company?: { id: number; name: string } | null;
-  lead?: { id: number; description: string; status: LeadStatus } | null;
   contactEndDate?: string | null;
   entityLinks?: boolean;
 };
 
 function formatEntityReference(
   contact: EntityReferenceProps["contact"],
-  company: EntityReferenceProps["company"],
-  lead: EntityReferenceProps["lead"]
+  company: EntityReferenceProps["company"]
 ): string {
   const parts: string[] = [];
-  if (lead) {
-    parts.push(lead.description);
-  }
   if (contact) {
     const name = `${contact.firstName ?? ""} ${contact.lastName ?? ""}`.trim();
     parts.push(name || `Contact[${contact.id}]`);
@@ -30,11 +23,10 @@ function formatEntityReference(
 export function EntityReference({
   contact,
   company,
-  lead,
   contactEndDate,
   entityLinks = false,
 }: EntityReferenceProps) {
-  if (!contact && !company && !lead) {
+  if (!contact && !company) {
     return null;
   }
 
@@ -43,21 +35,6 @@ export function EntityReference({
 
   if (entityLinks) {
     const parts: React.ReactNode[] = [];
-    if (lead) {
-      parts.push(
-        <a
-          key="lead"
-          className="underline"
-          href={`/leads/${lead.id}`}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {lead.description.length > 50 ? `${lead.description.slice(0, 50)}…` : lead.description}
-        </a>
-      );
-    }
-    if (lead && (contact || company)) {
-      parts.push(" / ");
-    }
     if (contact) {
       parts.push(
         <a
@@ -93,7 +70,7 @@ export function EntityReference({
     );
   }
 
-  const entityRef = formatEntityReference(contact, company, lead);
+  const entityRef = formatEntityReference(contact, company);
   if (!entityRef) {
     return null;
   }

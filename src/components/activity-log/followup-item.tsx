@@ -73,11 +73,7 @@ export function FollowupItem({
             />
           </div>
           <div className="flex-1 min-w-0">
-            <div
-              className={`flex items-start justify-between text-xs text-muted-foreground ${
-                followup.lead ? "mb-0.5" : "mb-2.5"
-              }`}
-            >
+            <div className="flex items-start justify-between text-xs text-muted-foreground mb-2.5">
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <div className="flex-1 min-w-0">
                   <span className="rounded" style={dueBgStyle(followup.dueAt)}>
@@ -93,15 +89,19 @@ export function FollowupItem({
                   <EntityReference
                     contact={followup.contact}
                     company={followup.company}
-                    lead={followup.lead}
                     contactEndDate={followup.contactEndDate}
                     entityLinks={entityLinks}
                   />
+                  {followup.lead && (
+                    <>
+                      {" "}
+                      · <LeadReference lead={followup.lead} />
+                    </>
+                  )}
                 </div>
               </div>
               {showBadge && <Badge variant="secondary">Oppfølging</Badge>}
             </div>
-            {followup.lead && <LeadReference lead={followup.lead} />}
             <div className="whitespace-pre-wrap text-sm">{followup.note}</div>
           </div>
         </div>
@@ -144,11 +144,7 @@ export function FollowupItem({
           <CompletionCheckbox completed={true} disabled={true} onClick={() => {}} />
         </div>
         <div className="flex-1 min-w-0">
-          <div
-            className={`flex items-start justify-between text-xs text-muted-foreground ${
-              followup.lead ? "mb-0.5" : "mb-2.5"
-            }`}
-          >
+          <div className="flex items-start justify-between text-xs text-muted-foreground mb-2.5">
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <div className="flex-1 min-w-0">
                 <span className="text-xs text-muted-foreground">
@@ -163,16 +159,20 @@ export function FollowupItem({
                   <EntityReference
                     contact={followup.contact}
                     company={followup.company}
-                    lead={followup.lead}
                     contactEndDate={followup.contactEndDate}
                     entityLinks={entityLinks}
                   />
+                  {followup.lead && (
+                    <>
+                      {" "}
+                      · <LeadReference lead={followup.lead} />
+                    </>
+                  )}
                 </span>
               </div>
             </div>
             {showBadge && <Badge variant="secondary">Oppfølging</Badge>}
           </div>
-          {followup.lead && <LeadReference lead={followup.lead} />}
           <div className="whitespace-pre-wrap text-sm">{followup.note}</div>
         </div>
       </div>

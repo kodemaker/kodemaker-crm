@@ -21,6 +21,12 @@ export const leadStatusEnum = pgEnum("lead_status", [
 ]);
 export const emailModeEnum = pgEnum("email_mode", ["FORWARDED", "BCC"]);
 export const eventEntityEnum = pgEnum("event_entity", ["company", "contact", "lead"]);
+export const activityEventTypeEnum = pgEnum("activity_event_type", [
+  "comment_created",
+  "lead_created",
+  "lead_status_changed",
+  "email_received",
+]);
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -170,6 +176,29 @@ export const events = pgTable("events", {
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+export const activityEvents = pgTable("activity_events", {
+  id: serial("id").primaryKey(),
+  eventType: activityEventTypeEnum("event_type").notNull(),
+
+  // Reference to the source item (one of these will be set based on eventType)
+  commentId: integer("comment_id").references(() => comments.id, { onDelete: "cascade" }),
+  leadId: integer("lead_id").references(() => leads.id, { onDelete: "cascade" }),
+  emailId: integer("email_id").references(() => emails.id, { onDelete: "cascade" }),
+
+  // User who performed the action (null for system events like email_received)
+  actorUserId: integer("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+
+  // Context for filtering - denormalized for query performance
+  companyId: integer("company_id").references(() => companies.id, { onDelete: "cascade" }),
+  contactId: integer("contact_id").references(() => contacts.id, { onDelete: "cascade" }),
+
+  // For lead_status_changed: track old/new status
+  oldStatus: leadStatusEnum("old_status"),
+  newStatus: leadStatusEnum("new_status"),
+
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const usersRelations = relations(users, ({ many }) => ({
   leads: many(leads),
   comments: many(comments),
@@ -211,4 +240,31 @@ export const leadsRelations = relations(leads, ({ one, many }) => ({
     references: [contacts.id],
   }),
   comments: many(comments),
+}));
+
+export const activityEventsRelations = relations(activityEvents, ({ one }) => ({
+  comment: one(comments, {
+    fields: [activityEvents.commentId],
+    references: [comments.id],
+  }),
+  lead: one(leads, {
+    fields: [activityEvents.leadId],
+    references: [leads.id],
+  }),
+  email: one(emails, {
+    fields: [activityEvents.emailId],
+    references: [emails.id],
+  }),
+  actorUser: one(users, {
+    fields: [activityEvents.actorUserId],
+    references: [users.id],
+  }),
+  company: one(companies, {
+    fields: [activityEvents.companyId],
+    references: [companies.id],
+  }),
+  contact: one(contacts, {
+    fields: [activityEvents.contactId],
+    references: [contacts.id],
+  }),
 }));

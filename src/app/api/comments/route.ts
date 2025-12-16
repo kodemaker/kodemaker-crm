@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { comments, companies, contactCompanyHistory, contacts, leads, users } from "@/db/schema";
 import { createEventCommentCreated } from "@/db/events";
+import { createActivityEventCommentCreated } from "@/db/activity-events";
 import { z } from "zod";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { requireApiAuth } from "@/lib/require-api-auth";
@@ -272,6 +273,13 @@ export async function POST(req: NextRequest) {
       parsed.data.contactId,
       created.content
     );
+    await createActivityEventCommentCreated({
+      commentId: created.id,
+      actorUserId: userId,
+      companyId: parsed.data.companyId,
+      contactId: parsed.data.contactId,
+      leadId: parsed.data.leadId,
+    });
     return NextResponse.json(created);
   } catch (error) {
     logger.error({ route: "/api/comments", method: "POST", error }, "Error creating comment");

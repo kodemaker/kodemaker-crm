@@ -1,0 +1,449 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import useSWR from "swr";
+import { Check, Filter, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { DatePicker } from "@/components/ui/date-picker";
+import { cn } from "@/lib/utils";
+import type { ActivityEventType } from "@/types/api";
+
+// Shared clear button for filter dropdowns
+function ClearFilterButton({ onClear }: { onClear: () => void }) {
+  return (
+    <span
+      className="ml-1 inline-flex cursor-pointer hover:text-destructive"
+      role="button"
+      tabIndex={0}
+      onPointerDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onClear();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          onClear();
+        }
+      }}
+    >
+      <X className="h-3 w-3" />
+    </span>
+  );
+}
+
+export type EventFilters = {
+  types: ActivityEventType[];
+  companyId?: number;
+  contactId?: number;
+  userId?: number;
+  fromDate?: Date;
+  toDate?: Date;
+};
+
+type EventFiltersProps = {
+  filters: EventFilters;
+  onChange: (filters: EventFilters) => void;
+};
+
+type CompanyData = { id: number; name: string };
+type ContactData = { id: number; firstName: string; lastName: string };
+type UserData = { id: number; firstName: string; lastName: string };
+
+// Simplified type filter with 3 categories
+type FilterTypeOption = "comment" | "lead" | "email";
+
+const FILTER_TYPE_OPTIONS: { value: FilterTypeOption; label: string; apiTypes: ActivityEventType[] }[] = [
+  { value: "comment", label: "Kommentar", apiTypes: ["comment_created"] },
+  { value: "lead", label: "Lead", apiTypes: ["lead_created", "lead_status_changed"] },
+  { value: "email", label: "E-post", apiTypes: ["email_received"] },
+];
+
+// Convert filter types to API types
+function filterTypesToApiTypes(filterTypes: FilterTypeOption[]): ActivityEventType[] {
+  return filterTypes.flatMap(
+    (ft) => FILTER_TYPE_OPTIONS.find((o) => o.value === ft)?.apiTypes ?? []
+  );
+}
+
+// Convert API types to filter types
+function apiTypesToFilterTypes(apiTypes: ActivityEventType[]): FilterTypeOption[] {
+  const result: FilterTypeOption[] = [];
+  for (const option of FILTER_TYPE_OPTIONS) {
+    if (option.apiTypes.some((t) => apiTypes.includes(t))) {
+      result.push(option.value);
+    }
+  }
+  return result;
+}
+
+export function EventFiltersBar({ filters, onChange }: EventFiltersProps) {
+  const hasFilters =
+    filters.types.length > 0 ||
+    filters.companyId ||
+    filters.contactId ||
+    filters.userId ||
+    filters.fromDate ||
+    filters.toDate;
+
+  const clearFilters = () => {
+    onChange({
+      types: [],
+      companyId: undefined,
+      contactId: undefined,
+      userId: undefined,
+      fromDate: undefined,
+      toDate: undefined,
+    });
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-2 p-4 m-4 rounded-lg bg-muted">
+      <Filter className="h-4 w-4 text-muted-foreground" />
+      <EventTypeFilter
+        value={filters.types}
+        onChange={(types) => onChange({ ...filters, types })}
+      />
+      <CompanyFilter
+        value={filters.companyId}
+        onChange={(companyId) => onChange({ ...filters, companyId })}
+      />
+      <ContactFilter
+        value={filters.contactId}
+        onChange={(contactId) => onChange({ ...filters, contactId })}
+      />
+      <UserFilterSimple
+        value={filters.userId}
+        onChange={(userId) => onChange({ ...filters, userId })}
+      />
+      <div className="flex items-center gap-1">
+        <DatePicker
+          value={filters.fromDate}
+          onValueChange={(date) => onChange({ ...filters, fromDate: date ?? undefined })}
+          placeholder="Fra dato"
+          className="h-8 w-[130px]"
+        />
+        <span className="text-muted-foreground">-</span>
+        <DatePicker
+          value={filters.toDate}
+          onValueChange={(date) => onChange({ ...filters, toDate: date ?? undefined })}
+          placeholder="Til dato"
+          className="h-8 w-[130px]"
+        />
+      </div>
+      {hasFilters && (
+        <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 px-2">
+          <X className="h-4 w-4 mr-1" />
+          Nullstill
+        </Button>
+      )}
+    </div>
+  );
+}
+
+function EventTypeFilter({
+  value,
+  onChange,
+}: {
+  value: ActivityEventType[];
+  onChange: (value: ActivityEventType[]) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const filterTypes = apiTypesToFilterTypes(value);
+
+  const toggleFilterType = (filterType: FilterTypeOption) => {
+    const newFilterTypes = filterTypes.includes(filterType)
+      ? filterTypes.filter((t) => t !== filterType)
+      : [...filterTypes, filterType];
+    onChange(filterTypesToApiTypes(newFilterTypes));
+  };
+
+  const getSelectedLabel = () => {
+    if (filterTypes.length === 0) return "Type";
+    if (filterTypes.length === 1) {
+      return FILTER_TYPE_OPTIONS.find((o) => o.value === filterTypes[0])?.label ?? "Type";
+    }
+    return `${filterTypes.length} typer`;
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn("h-8", filterTypes.length > 0 && "border-primary/50 bg-primary/5")}
+        >
+          {getSelectedLabel()}
+          {filterTypes.length > 0 && (
+            <ClearFilterButton onClear={() => { onChange([]); setOpen(false); }} />
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[180px] p-0" align="start">
+        <Command>
+          <CommandList>
+            <CommandGroup>
+              {FILTER_TYPE_OPTIONS.map((option) => (
+                <CommandItem
+                  key={option.value}
+                  value={option.label}
+                  onSelect={() => toggleFilterType(option.value)}
+                >
+                  {option.label}
+                  <Check
+                    className={cn(
+                      "ml-auto h-4 w-4",
+                      filterTypes.includes(option.value) ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function CompanyFilter({
+  value,
+  onChange,
+}: {
+  value?: number;
+  onChange: (value?: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const { data: companies } = useSWR<CompanyData[]>("/api/companies");
+
+  const filteredCompanies = useMemo(() => {
+    if (!companies) return [];
+    if (!query) return companies.slice(0, 20);
+    const lowerQuery = query.toLowerCase();
+    return companies.filter((c) => c.name.toLowerCase().includes(lowerQuery)).slice(0, 20);
+  }, [companies, query]);
+
+  const selectedCompany = useMemo(() => {
+    if (!value || !companies) return null;
+    return companies.find((c) => c.id === value) ?? null;
+  }, [companies, value]);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn("h-8", value && "border-primary/50 bg-primary/5")}
+        >
+          {selectedCompany ? selectedCompany.name : "Organisasjon"}
+          {value && (
+            <ClearFilterButton onClear={() => { onChange(undefined); setOpen(false); }} />
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[250px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Søk organisasjon..." value={query} onValueChange={setQuery} />
+          <CommandList>
+            <CommandEmpty>Ingen treff</CommandEmpty>
+            <CommandGroup>
+              {filteredCompanies.map((company) => (
+                <CommandItem
+                  key={company.id}
+                  value={company.name}
+                  onSelect={() => {
+                    onChange(company.id);
+                    setOpen(false);
+                    setQuery("");
+                  }}
+                >
+                  {company.name}
+                  <Check
+                    className={cn(
+                      "ml-auto h-4 w-4",
+                      value === company.id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function ContactFilter({
+  value,
+  onChange,
+}: {
+  value?: number;
+  onChange: (value?: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const { data: contacts } = useSWR<ContactData[]>("/api/contacts");
+
+  const filteredContacts = useMemo(() => {
+    if (!contacts) return [];
+    if (!query) return contacts.slice(0, 20);
+    const lowerQuery = query.toLowerCase();
+    return contacts
+      .filter(
+        (c) =>
+          c.firstName.toLowerCase().includes(lowerQuery) ||
+          c.lastName.toLowerCase().includes(lowerQuery) ||
+          `${c.firstName} ${c.lastName}`.toLowerCase().includes(lowerQuery)
+      )
+      .slice(0, 20);
+  }, [contacts, query]);
+
+  const selectedContact = useMemo(() => {
+    if (!value || !contacts) return null;
+    return contacts.find((c) => c.id === value) ?? null;
+  }, [contacts, value]);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn("h-8", value && "border-primary/50 bg-primary/5")}
+        >
+          {selectedContact
+            ? `${selectedContact.firstName} ${selectedContact.lastName}`
+            : "Kontakt"}
+          {value && (
+            <ClearFilterButton onClear={() => { onChange(undefined); setOpen(false); }} />
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[250px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Søk kontakt..." value={query} onValueChange={setQuery} />
+          <CommandList>
+            <CommandEmpty>Ingen treff</CommandEmpty>
+            <CommandGroup>
+              {filteredContacts.map((contact) => (
+                <CommandItem
+                  key={contact.id}
+                  value={`${contact.firstName} ${contact.lastName}`}
+                  onSelect={() => {
+                    onChange(contact.id);
+                    setOpen(false);
+                    setQuery("");
+                  }}
+                >
+                  {contact.firstName} {contact.lastName}
+                  <Check
+                    className={cn(
+                      "ml-auto h-4 w-4",
+                      value === contact.id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
+function UserFilterSimple({
+  value,
+  onChange,
+}: {
+  value?: number;
+  onChange: (value?: number) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+
+  const { data: users } = useSWR<UserData[]>("/api/users");
+
+  const filteredUsers = useMemo(() => {
+    if (!users) return [];
+    if (!query) return users;
+    const lowerQuery = query.toLowerCase();
+    return users.filter(
+      (u) =>
+        u.firstName.toLowerCase().includes(lowerQuery) ||
+        u.lastName.toLowerCase().includes(lowerQuery) ||
+        `${u.firstName} ${u.lastName}`.toLowerCase().includes(lowerQuery)
+    );
+  }, [users, query]);
+
+  const selectedUser = useMemo(() => {
+    if (!value || !users) return null;
+    return users.find((u) => u.id === value) ?? null;
+  }, [users, value]);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          size="sm"
+          className={cn("h-8", value && "border-primary/50 bg-primary/5")}
+        >
+          {selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : "Bruker"}
+          {value && (
+            <ClearFilterButton onClear={() => { onChange(undefined); setOpen(false); }} />
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[220px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Søk bruker..." value={query} onValueChange={setQuery} />
+          <CommandList>
+            <CommandEmpty>Ingen treff</CommandEmpty>
+            <CommandGroup>
+              {filteredUsers.map((user) => (
+                <CommandItem
+                  key={user.id}
+                  value={`${user.firstName} ${user.lastName}`}
+                  onSelect={() => {
+                    onChange(user.id);
+                    setOpen(false);
+                    setQuery("");
+                  }}
+                >
+                  {user.firstName} {user.lastName}
+                  <Check
+                    className={cn(
+                      "ml-auto h-4 w-4",
+                      value === user.id ? "opacity-100" : "opacity-0"
+                    )}
+                  />
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}

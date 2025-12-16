@@ -68,8 +68,8 @@ Merging Contacts
 
 4. Events page behavior
 
-- SSE connects only after initial SWR load; highlight new events for 10s.
-- Paused mode halts reconnections and list updates.
+- SSE connects after initial SWR load; highlight new events for 10s.
+- Auto-updates are always enabled for real-time event streaming.
 
 Coding Standards
 
@@ -92,13 +92,79 @@ Vitest/TS Patterns
 - Mock Drizzle builders at the call-site level (e.g., chain `.select().from().where().limit()` returning promises).
 - For fake timers with async code, use `vi.useFakeTimers({ shouldAdvanceTime: true })`.
 
-Migrations
+Database Migration Workflow
 
-- After schema changes:
-  - `npm run db:generate-migrations`
-  - Commit migration files.
-  - `npm run db:migrate` locally.
-  - Scalingo will run checked-in migrations on deploy.
+CRITICAL: Always follow this workflow when changing the database schema.
+
+Step 1: Update Schema First
+- ALWAYS edit `src/db/schema.ts` first before making any other changes.
+- Never manually edit migration files in `drizzle/` directory.
+- Never skip schema changes and try to write migrations manually.
+
+Step 2: Generate Migration
+After updating `src/db/schema.ts`, ALWAYS run:
+```bash
+pnpm run db:generate-migrations
+```
+This creates a new migration file in `drizzle/000X_*.sql` and updates metadata.
+
+Step 3: Review Migration
+- Check the generated migration file in `drizzle/000X_*.sql`.
+- Verify it matches your intended changes.
+- Pay special attention to enum changes (Postgres gotcha: don't recreate existing enums).
+
+Step 4: Apply Migration
+After reviewing, apply the migration:
+```bash
+pnpm run db:migrate
+```
+
+Step 5: Update Code
+Only after the migration is applied, update:
+- API routes (`src/app/api/**/route.ts`) - add new fields to Zod schemas.
+- Type definitions (`src/types/api.ts`) - add new fields to types.
+- UI components - add form fields and display logic.
+- Database query functions (`src/db/*.ts`) - ensure new fields are selected/returned.
+
+Common Migration Mistakes to Avoid:
+- ❌ DON'T edit migration files manually.
+- ❌ DON'T skip `pnpm run db:generate-migrations`.
+- ❌ DON'T update code before schema changes.
+- ❌ DON'T recreate existing enums in migrations.
+- ✅ Scalingo will run checked-in migrations on deploy.
+
+TypeScript Types from Drizzle Schema
+
+Prefer inferring types from the Drizzle schema instead of manually defining them. This ensures types stay in sync with the database.
+
+```typescript
+import { InferSelectModel, InferInsertModel } from "drizzle-orm";
+import { users, companies } from "@/db/schema";
+
+// Type for SELECT queries (all fields, respects nullability)
+type User = InferSelectModel<typeof users>;
+
+// Type for INSERT (respects defaults, makes optional fields optional)
+type NewUser = InferInsertModel<typeof users>;
+```
+
+When to use inferred types:
+- Internal DB queries and functions in `src/db/*.ts`.
+- API route handlers that return full records.
+
+When to use manual types (in `src/types/api.ts`):
+- API responses that include JOINed/nested data.
+- Partial responses or projections.
+- Client-facing types that differ from DB shape.
+
+Pattern: Export inferred types from a central location:
+```typescript
+// src/db/types.ts
+export type { InferSelectModel, InferInsertModel } from "drizzle-orm";
+export type User = InferSelectModel<typeof users>;
+export type Company = InferSelectModel<typeof companies>;
+// ... etc
+```
 
 Performance & Realtime
 

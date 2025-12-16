@@ -13,6 +13,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -21,16 +22,19 @@ import { Save } from "lucide-react";
 import { toast } from "sonner";
 import { LeadHeader } from "@/components/entity-summary-header";
 import { LeadStatusSelect, type LeadStatus } from "@/components/lead-status-select";
+import { ActivityLog } from "@/components/activity-log";
 
 const schema = z.object({
   description: z.string().min(1),
-  status: z.enum(["NEW", "IN_PROGRESS", "LOST", "WON", "BORTFALT"]),
+  status: z.enum(["NEW", "IN_PROGRESS", "ON_HOLD", "LOST", "WON", "BORTFALT"]),
+  potentialValue: z.number().int().nullable().optional(),
 });
 
 type LeadData = {
   id: number;
   description: string;
   status: LeadStatus;
+  potentialValue?: number | null;
   createdAt: string;
   updatedAt: string;
   createdBy?: { firstName?: string | null; lastName?: string | null } | null;
@@ -68,6 +72,7 @@ function LeadForm({
     defaultValues: {
       description: data.description,
       status: data.status,
+      potentialValue: data.potentialValue ?? null,
     },
   });
 
@@ -127,21 +132,45 @@ function LeadForm({
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem className="max-w-xs">
-                  <FormLabel>Status</FormLabel>
-                  <LeadStatusSelect
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    className="bg-background"
-                  />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <LeadStatusSelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                      className="bg-background"
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="potentialValue"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mulig verdi (NOK)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="f.eks. 500000"
+                        className="bg-background"
+                        value={field.value ?? ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          field.onChange(val === "" ? null : parseInt(val, 10));
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <div className="flex justify-end pt-2">
               <Button type="submit" className="inline-flex items-center gap-1.5">
                 <Save className="h-4 w-4" /> Lagre
@@ -150,6 +179,11 @@ function LeadForm({
           </form>
         </Form>
       </section>
+
+      <ActivityLog
+        contactId={data.contact?.id}
+        companyId={data.company?.id}
+      />
 
       <CreatedBy createdAt={data.createdAt} createdBy={data.createdBy} />
     </div>

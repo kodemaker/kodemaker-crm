@@ -19,6 +19,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   Command,
@@ -44,6 +45,7 @@ export interface NewLeadDialogProps {
   trigger?: ReactNode | null;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
+  onCreated?: () => void;
 }
 
 export function NewLeadDialog({
@@ -54,11 +56,13 @@ export function NewLeadDialog({
   trigger,
   open,
   onOpenChange,
+  onCreated,
 }: NewLeadDialogProps) {
   const schema = z
     .object({
       description: z.string().min(1),
-      status: z.enum(["NEW", "IN_PROGRESS", "LOST", "WON", "BORTFALT"]),
+      status: z.enum(["NEW", "IN_PROGRESS", "ON_HOLD", "LOST", "WON", "BORTFALT"]),
+      potentialValue: z.number().int().nullable().optional(),
       companyId: z.number().optional(),
       contactId: z.number().optional(),
     })
@@ -69,7 +73,7 @@ export function NewLeadDialog({
 
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
-    defaultValues: { description: "", status: "NEW", companyId },
+    defaultValues: { description: "", status: "NEW", potentialValue: null, companyId },
   });
 
   const [internalOpen, setInternalOpen] = useState(false);
@@ -147,9 +151,11 @@ export function NewLeadDialog({
     const refreshContactId = selectedContact?.id ?? contactId;
     await Promise.all([
       globalMutate("/api/companies"),
+      globalMutate("/api/leads"),
       refreshCompanyId ? globalMutate(`/api/companies/${refreshCompanyId}`) : Promise.resolve(),
       refreshContactId ? globalMutate(`/api/contacts/${refreshContactId}`) : Promise.resolve(),
     ]);
+    onCreated?.();
     handleOpenChange(false);
   }
   return (
@@ -184,20 +190,44 @@ export function NewLeadDialog({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Status</FormLabel>
-                  <LeadStatusSelect
-                    value={field.value}
-                    onValueChange={field.onChange}
-                  />
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-2 gap-3">
+              <FormField
+                control={form.control}
+                name="status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Status</FormLabel>
+                    <LeadStatusSelect
+                      value={field.value}
+                      onValueChange={field.onChange}
+                    />
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="potentialValue"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Mulig verdi (NOK)</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="number"
+                        placeholder="f.eks. 500000"
+                        value={field.value ?? ""}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          field.onChange(val === "" ? null : parseInt(val, 10));
+                        }}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-3">
               <FormField

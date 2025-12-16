@@ -1,6 +1,7 @@
 import {
   boolean,
   date,
+  index,
   integer,
   pgEnum,
   pgTable,
@@ -197,7 +198,13 @@ export const activityEvents = pgTable("activity_events", {
   newStatus: leadStatusEnum("new_status"),
 
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (table) => [
+  index("idx_activity_events_created_at").on(table.createdAt.desc()),
+  index("idx_activity_events_event_type").on(table.eventType),
+  index("idx_activity_events_company_id").on(table.companyId),
+  index("idx_activity_events_contact_id").on(table.contactId),
+  index("idx_activity_events_actor_user_id").on(table.actorUserId),
+]);
 
 export const usersRelations = relations(users, ({ many }) => ({
   leads: many(leads),

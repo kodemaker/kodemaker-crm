@@ -17,6 +17,35 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { cn } from "@/lib/utils";
 import type { ActivityEventType } from "@/types/api";
 
+// Shared clear button for filter dropdowns
+function ClearFilterButton({ onClear }: { onClear: () => void }) {
+  return (
+    <span
+      className="ml-1 inline-flex cursor-pointer hover:text-destructive"
+      role="button"
+      tabIndex={0}
+      onPointerDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      }}
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onClear();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          e.stopPropagation();
+          onClear();
+        }
+      }}
+    >
+      <X className="h-3 w-3" />
+    </span>
+  );
+}
+
 export type EventFilters = {
   types: ActivityEventType[];
   companyId?: number;
@@ -161,31 +190,7 @@ function EventTypeFilter({
         >
           {getSelectedLabel()}
           {filterTypes.length > 0 && (
-            <span
-              className="ml-1 inline-flex cursor-pointer hover:text-destructive"
-              role="button"
-              tabIndex={0}
-              onPointerDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onChange([]);
-                setOpen(false);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onChange([]);
-                  setOpen(false);
-                }
-              }}
-            >
-              <X className="h-3 w-3" />
-            </span>
+            <ClearFilterButton onClear={() => { onChange([]); setOpen(false); }} />
           )}
         </Button>
       </PopoverTrigger>
@@ -250,31 +255,7 @@ function CompanyFilter({
         >
           {selectedCompany ? selectedCompany.name : "Organisasjon"}
           {value && (
-            <span
-              className="ml-1 inline-flex cursor-pointer hover:text-destructive"
-              role="button"
-              tabIndex={0}
-              onPointerDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onChange(undefined);
-                setOpen(false);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onChange(undefined);
-                  setOpen(false);
-                }
-              }}
-            >
-              <X className="h-3 w-3" />
-            </span>
+            <ClearFilterButton onClear={() => { onChange(undefined); setOpen(false); }} />
           )}
         </Button>
       </PopoverTrigger>
@@ -354,31 +335,7 @@ function ContactFilter({
             ? `${selectedContact.firstName} ${selectedContact.lastName}`
             : "Kontakt"}
           {value && (
-            <span
-              className="ml-1 inline-flex cursor-pointer hover:text-destructive"
-              role="button"
-              tabIndex={0}
-              onPointerDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onChange(undefined);
-                setOpen(false);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onChange(undefined);
-                  setOpen(false);
-                }
-              }}
-            >
-              <X className="h-3 w-3" />
-            </span>
+            <ClearFilterButton onClear={() => { onChange(undefined); setOpen(false); }} />
           )}
         </Button>
       </PopoverTrigger>
@@ -454,31 +411,7 @@ function UserFilterSimple({
         >
           {selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : "Bruker"}
           {value && (
-            <span
-              className="ml-1 inline-flex cursor-pointer hover:text-destructive"
-              role="button"
-              tabIndex={0}
-              onPointerDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                onChange(undefined);
-                setOpen(false);
-              }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onChange(undefined);
-                  setOpen(false);
-                }
-              }}
-            >
-              <X className="h-3 w-3" />
-            </span>
+            <ClearFilterButton onClear={() => { onChange(undefined); setOpen(false); }} />
           )}
         </Button>
       </PopoverTrigger>

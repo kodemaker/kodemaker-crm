@@ -185,7 +185,7 @@ export async function GET(req: NextRequest) {
       {
         id: number;
         description: string;
-        status: "NEW" | "IN_PROGRESS" | "LOST" | "WON" | "BORTFALT";
+        status: "NEW" | "IN_PROGRESS" | "ON_HOLD" | "LOST" | "WON" | "BORTFALT";
       }
     > = {};
     if (companyIds.size) {

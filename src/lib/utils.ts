@@ -38,6 +38,19 @@ export function formatDate(dateString: string): string {
 }
 
 /**
+ * Formats a date string to short format with abbreviated month.
+ * Example: "2025-01-23" -> "23. jan 25"
+ */
+export function formatDateShort(dateString: string): string {
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return dateString;
+  const day = date.getDate();
+  const month = date.toLocaleDateString("nb-NO", { month: "short" }).replace(".", "");
+  const year = date.getFullYear().toString().slice(-2);
+  return `${day}. ${month} ${year}`;
+}
+
+/**
  * Returns background color style based on due date proximity:
  * - Neutral (no background): 2+ days until due date
  * - Yellow: 0-2 days until due date (intensity increases as deadline approaches)
@@ -89,16 +102,29 @@ export function getDefaultDueDate(): Date {
  * Returns Norwegian label for lead status.
  */
 export function getLeadStatusLabel(
-  status: "NEW" | "IN_PROGRESS" | "LOST" | "WON" | "BORTFALT"
+  status: "NEW" | "IN_PROGRESS" | "ON_HOLD" | "LOST" | "WON" | "BORTFALT"
 ): string {
-  const labels: Record<"NEW" | "IN_PROGRESS" | "LOST" | "WON" | "BORTFALT", string> = {
+  const labels: Record<"NEW" | "IN_PROGRESS" | "ON_HOLD" | "LOST" | "WON" | "BORTFALT", string> = {
     NEW: "Ny lead",
     IN_PROGRESS: "Lead under arbeid",
+    ON_HOLD: "Lead på vent",
     LOST: "Tapt lead",
     WON: "Vunnet lead",
     BORTFALT: "Bortfalt lead",
   };
   return labels[status] ?? status;
+}
+
+/**
+ * Formats a number as Norwegian currency (NOK).
+ * Example: 500000 -> "kr 500 000"
+ */
+export function formatCurrency(value: number): string {
+  return new Intl.NumberFormat("nb-NO", {
+    style: "currency",
+    currency: "NOK",
+    maximumFractionDigits: 0,
+  }).format(value);
 }
 
 /**

@@ -1,7 +1,7 @@
 import { requireAuth } from "@/lib/require-auth";
-import { ActiveLeadsClient } from "./active-leads-client";
+import { KanbanBoard } from "@/components/kanban";
 
 export default async function ActiveLeadsPage() {
   await requireAuth();
-  return <ActiveLeadsClient />;
+  return <KanbanBoard />;
 }

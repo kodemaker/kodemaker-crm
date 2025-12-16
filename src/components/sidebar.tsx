@@ -40,7 +40,7 @@ const MAIN_NAV_ITEMS: NavItem[] = [
   },
   {
     href: "/leads/active",
-    label: "Aktive leads",
+    label: "Leads",
     icon: BadgePercent,
     isActive: (pathname) => pathname === "/leads/active",
   },

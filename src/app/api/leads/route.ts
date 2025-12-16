@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/client";
-import { companies, contacts, leads } from "@/db/schema";
+import { companies, contacts, followups, leads, users } from "@/db/schema";
 import { z } from "zod";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, isNull } from "drizzle-orm";
 import { requireApiAuth } from "@/lib/require-api-auth";
 import { createEventLeadCreated } from "@/db/events";
 import { createActivityEventLeadCreated } from "@/db/activity-events";
@@ -11,7 +11,8 @@ const createLeadSchema = z.object({
   companyId: z.number().int(),
   contactId: z.number().int().optional(),
   description: z.string().min(1),
-  status: z.enum(["NEW", "IN_PROGRESS", "LOST", "WON", "BORTFALT"]).optional(),
+  potentialValue: z.number().int().nullable().optional(),
+  status: z.enum(["NEW", "IN_PROGRESS", "ON_HOLD", "LOST", "WON", "BORTFALT"]).optional(),
 });
 
 export async function GET(req: NextRequest) {
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest) {
   const statusParam = searchParams.get("status");
   const companyIdParam = searchParams.get("companyId");
   const contactIdParam = searchParams.get("contactId");
-  const allowedStatuses = new Set(["NEW", "IN_PROGRESS", "LOST", "WON", "BORTFALT"]);
+  const allowedStatuses = new Set(["NEW", "IN_PROGRESS", "ON_HOLD", "LOST", "WON", "BORTFALT"]);
 
   const filters: Array<ReturnType<typeof eq> | ReturnType<typeof inArray>> = [];
   if (statusParam) {
@@ -30,7 +31,7 @@ export async function GET(req: NextRequest) {
       .split(",")
       .map((s) => s.trim().toUpperCase())
       .filter((s) => allowedStatuses.has(s)) as Array<
-      "NEW" | "IN_PROGRESS" | "LOST" | "WON" | "BORTFALT"
+      "NEW" | "IN_PROGRESS" | "ON_HOLD" | "LOST" | "WON" | "BORTFALT"
     >;
     if (statuses.length > 0) {
       filters.push(inArray(leads.status, statuses));
@@ -49,11 +50,12 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const data = await db
+  const leadsData = await db
     .select({
       id: leads.id,
       description: leads.description,
       status: leads.status,
+      potentialValue: leads.potentialValue,
       createdAt: leads.createdAt,
       company: {
         id: companies.id,
@@ -71,6 +73,53 @@ export async function GET(req: NextRequest) {
     .where(filters.length ? and(...filters) : undefined)
     .orderBy(desc(leads.createdAt))
     .limit(100);
+
+  // Get next (earliest non-completed) followup for each lead
+  const leadIds = leadsData.map((l) => l.id);
+  const nextFollowups =
+    leadIds.length > 0
+      ? await db
+          .select({
+            leadId: followups.leadId,
+            dueAt: followups.dueAt,
+            assignedToId: followups.assignedToUserId,
+            assignedToFirstName: users.firstName,
+            assignedToLastName: users.lastName,
+          })
+          .from(followups)
+          .leftJoin(users, eq(followups.assignedToUserId, users.id))
+          .where(
+            and(
+              inArray(followups.leadId, leadIds),
+              isNull(followups.completedAt)
+            )
+          )
+          .orderBy(asc(followups.dueAt))
+      : [];
+
+  // Map to get only the earliest followup per lead
+  const followupByLead = new Map<
+    number,
+    { dueAt: string; assignedTo: { firstName: string; lastName: string } | null }
+  >();
+  for (const f of nextFollowups) {
+    if (f.leadId && !followupByLead.has(f.leadId)) {
+      followupByLead.set(f.leadId, {
+        dueAt: f.dueAt.toISOString(),
+        assignedTo:
+          f.assignedToFirstName && f.assignedToLastName
+            ? { firstName: f.assignedToFirstName, lastName: f.assignedToLastName }
+            : null,
+      });
+    }
+  }
+
+  // Combine leads with their next followup
+  const data = leadsData.map((lead) => ({
+    ...lead,
+    nextFollowup: followupByLead.get(lead.id) ?? null,
+  }));
+
   return NextResponse.json(data);
 }
 

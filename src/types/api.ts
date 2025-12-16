@@ -31,12 +31,13 @@ export type ApiFollowup = {
   createdBy?: { firstName?: string | null; lastName?: string | null } | null;
 };
 
-export type LeadStatus = "NEW" | "IN_PROGRESS" | "LOST" | "WON" | "BORTFALT";
+export type LeadStatus = "NEW" | "IN_PROGRESS" | "ON_HOLD" | "LOST" | "WON" | "BORTFALT";
 
 export type ApiLead = {
   id: number;
   description: string;
   status: LeadStatus;
+  potentialValue?: number | null;
 };
 
 export type ApiEmail = {
@@ -99,8 +100,9 @@ export type GetCompanyDetailResponse = {
   comments: ApiComment[];
   leads: Array<{
     id: number;
-    status: "NEW" | "IN_PROGRESS" | "LOST" | "WON" | "BORTFALT";
+    status: LeadStatus;
     description: string;
+    potentialValue?: number | null;
     contactId?: number | null;
   }>;
   createdBy?: { firstName?: string | null; lastName?: string | null } | null;

@@ -14,6 +14,7 @@ const statusBadgeConfig: Record<
 > = {
   NEW: { label: "Ny", variant: "default" },
   IN_PROGRESS: { label: "Under arbeid", variant: "tertiary" },
+  ON_HOLD: { label: "På vent", variant: "secondary" },
   WON: { label: "Vunnet", variant: "primary" },
   LOST: { label: "Tapt", variant: "destructive" },
   BORTFALT: { label: "Bortfalt", variant: "bortfalt" },
@@ -24,6 +25,7 @@ export function LeadsSection({ leads, title = "Leads", headerAction }: LeadsSect
     const counts = {
       NEW: 0,
       IN_PROGRESS: 0,
+      ON_HOLD: 0,
       WON: 0,
       LOST: 0,
       BORTFALT: 0,
@@ -47,6 +49,7 @@ export function LeadsSection({ leads, title = "Leads", headerAction }: LeadsSect
         <div className="mb-2 flex flex-wrap gap-2 text-xs text-muted-foreground">
           <span>Ny: {stats.NEW}</span>
           <span>Under arbeid: {stats.IN_PROGRESS}</span>
+          <span>På vent: {stats.ON_HOLD}</span>
           <span>Vunnet: {stats.WON}</span>
           <span>Tapt: {stats.LOST}</span>
           <span>Bortfalt: {stats.BORTFALT}</span>

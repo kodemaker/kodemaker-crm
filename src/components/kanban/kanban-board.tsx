@@ -14,6 +14,7 @@ import {
 import useSWR, { useSWRConfig } from "swr";
 import { Plus } from "lucide-react";
 import { toast } from "sonner";
+import confetti from "canvas-confetti";
 import { Button } from "@/components/ui/button";
 import { NewLeadDialog } from "@/components/dialogs/new-lead-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -126,6 +127,15 @@ export function KanbanBoard() {
     const leadId = parseInt((active.id as string).replace("lead-", ""), 10);
     const lead = leads.find((l) => l.id === leadId);
     if (!lead || lead.status === newStatus) return;
+
+    // Trigger confetti for won leads
+    if (newStatus === "WON") {
+      confetti({
+        particleCount: 100,
+        spread: 70,
+        origin: { y: 0.6 },
+      });
+    }
 
     // Optimistic update
     mutate(

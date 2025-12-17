@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { Check, Filter, X } from "lucide-react";
+import { ClearFilterButton } from "@/components/filters/clear-filter-button";
 import { UserFilter, type UserFilterValue } from "@/components/filters/user-filter";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -17,35 +18,6 @@ import {
 import { DatePicker } from "@/components/ui/date-picker";
 import { cn } from "@/lib/utils";
 import type { ActivityEventType } from "@/types/api";
-
-// Shared clear button for filter dropdowns
-function ClearFilterButton({ onClear }: { onClear: () => void }) {
-  return (
-    <span
-      className="ml-1 inline-flex cursor-pointer hover:text-destructive"
-      role="button"
-      tabIndex={0}
-      onPointerDown={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }}
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onClear();
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          e.stopPropagation();
-          onClear();
-        }
-      }}
-    >
-      <X className="h-3 w-3" />
-    </span>
-  );
-}
 
 export type EventFilters = {
   types: ActivityEventType[];

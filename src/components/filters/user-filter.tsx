@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
-import { Check, Filter, Loader2, User, UserMinus, Users, X } from "lucide-react";
+import { Check, Filter, Loader2, User, UserMinus, Users } from "lucide-react";
+import { ClearFilterButton } from "@/components/filters/clear-filter-button";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -136,31 +137,12 @@ export function UserFilter({
           <span>{displayText}</span>
           {!hideIcons && displayIcon}
           {hideIcons && isFiltered && (
-            <span
-              className="ml-1 inline-flex cursor-pointer hover:text-destructive"
-              role="button"
-              tabIndex={0}
-              onPointerDown={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
+            <ClearFilterButton
+              onClear={() => {
                 onChange(defaultValue);
                 setOpen(false);
               }}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onChange(defaultValue);
-                  setOpen(false);
-                }
-              }}
-            >
-              <X className="h-3 w-3" />
-            </span>
+            />
           )}
         </Button>
       </PopoverTrigger>

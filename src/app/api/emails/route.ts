@@ -9,11 +9,6 @@ import {
   emails,
   users,
 } from "@/db/schema";
-import {
-  createEventCompanyCreated,
-  createEventContactCreated,
-  createEventEmailReceived,
-} from "@/db/events";
 import { createActivityEventEmailReceived } from "@/db/activity-events";
 import { desc, eq, inArray } from "drizzle-orm";
 import { createHmac } from "crypto";
@@ -229,8 +224,6 @@ export async function POST(req: NextRequest) {
         email: parsedMail.contactEmail,
         active: true,
       });
-
-      await createEventContactCreated(created.id);
     }
 
     // Find or create contactHistory (and company if not found)
@@ -259,7 +252,6 @@ export async function POST(req: NextRequest) {
           .returning();
         companyId = createdCompany.id;
         logger.info({ route: "/api/emails", method: "POST" }, `Create company ${capitalizedName}`);
-        await createEventCompanyCreated(createdCompany.id);
       }
       // Now, create contactHistory
       await db
@@ -316,12 +308,6 @@ export async function POST(req: NextRequest) {
       })
       .returning();
 
-    await createEventEmailReceived(
-      contactId!,
-      companyId,
-      parsedMail.subject ?? "",
-      parsedMail.mode
-    );
     await createActivityEventEmailReceived({
       emailId: createdEmail.id,
       actorUserId: createdByUser.id,

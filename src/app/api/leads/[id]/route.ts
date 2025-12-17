@@ -3,7 +3,6 @@ import { db } from "@/db/client";
 import { comments, companies, contacts, leads, users } from "@/db/schema";
 import { desc, eq } from "drizzle-orm";
 import { z } from "zod";
-import { createEvent } from "@/db/events";
 import { createActivityEventLeadStatusChanged } from "@/db/activity-events";
 import { requireApiAuth } from "@/lib/require-api-auth";
 
@@ -95,15 +94,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .where(eq(leads.id, id))
     .returning();
   if (updated) {
-    const changed = [
-      parsed.data.description ? "beskrivelse" : undefined,
-      parsed.data.potentialValue !== undefined ? "mulig verdi" : undefined,
-      parsed.data.status ? "status" : undefined,
-    ]
-      .filter(Boolean)
-      .join(" & ");
-    await createEvent("lead", updated.id, `Oppdatert lead (${changed || "ingen endringer"})`);
-
     // Create activity event if status changed
     if (parsed.data.status && currentLead && currentLead.status !== parsed.data.status) {
       await createActivityEventLeadStatusChanged({

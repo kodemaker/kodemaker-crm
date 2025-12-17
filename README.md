@@ -112,16 +112,16 @@ Note: If you add/alter enums, ensure migrations do not recreate an existing enum
 
 On Scalingo, checked in migrations will be run automatically when the app is deployed. You should not need to do anything here.
 
-### Real‑time Events (SSE)
+### Real‑time Activity Events (SSE)
 
-- Server endpoint: `GET /api/events/stream` (dynamic; uses Postgres LISTEN/NOTIFY)
-- Initial list: `GET /api/events` (returns latest 200)
-- Client: `src/app/events/page.tsx` subscribes after initial SWR load to avoid animating initial items.
+- Server endpoint: `GET /api/activity-events/stream` (dynamic; uses Postgres LISTEN/NOTIFY)
+- Initial list: `GET /api/activity-events` (returns activity events with filtering)
+- Client: `src/app/events/events-client.tsx` subscribes after initial SWR load to avoid animating initial items.
 
 ### API overview (selected)
 
-- `GET /api/events` — latest events
-- `GET /api/events/stream?since=<id>` — live stream via SSE
+- `GET /api/activity-events` — activity events (Hendelseslogg)
+- `GET /api/activity-events/stream?since=<id>` — live stream via SSE
 - `POST /api/comments` — add comment (company/contact/lead)
 - `POST /api/followups` — add followup (uses `z.coerce.date()` for ISO date strings)
 - `PATCH /api/followups/:id` — mark completed

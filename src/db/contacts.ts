@@ -1,12 +1,12 @@
 import { db } from "@/db/client";
 import {
+  activityEvents,
   comments,
   companies,
   contactCompanyHistory,
   contactEmails,
   contacts,
   emails,
-  events,
   followups,
   leads,
   users,
@@ -252,18 +252,18 @@ export async function getContactCounts(contactId: number) {
     .from(followups)
     .where(eq(followups.contactId, contactId));
 
-  // Get actual events count (from events table where entity = 'contact')
-  const [eventsCount] = await db
-    .select({ count: count(events.id) })
-    .from(events)
-    .where(eq(events.entityId, contactId));
+  // Get activity events count (from activity_events table by contactId)
+  const [activityEventsCount] = await db
+    .select({ count: count(activityEvents.id) })
+    .from(activityEvents)
+    .where(eq(activityEvents.contactId, contactId));
 
   return {
     emailAddresses: emailAddressesCount?.count || 0,
     emails: emailsCount?.count || 0,
     leads: leadsCount?.count || 0,
     comments: commentsCount?.count || 0,
-    events: eventsCount?.count || 0,
+    events: activityEventsCount?.count || 0,
     followups: followupsCount?.count || 0,
   };
 }

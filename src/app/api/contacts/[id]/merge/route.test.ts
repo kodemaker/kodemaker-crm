@@ -39,14 +39,7 @@ vi.mock("next/server", () => {
   return { NextResponse: MockNextResponse };
 });
 
-vi.mock("@/db/events", () => ({
-  createEventContactMerged: vi.fn(),
-  createEventContactDeleted: vi.fn(),
-}));
-
 const { db } = await vi.importMock<any>("@/db/client");
-const { createEventContactMerged, createEventContactDeleted } =
-  await vi.importMock<any>("@/db/events");
 
 describe("/api/contacts/[id]/merge", () => {
   beforeEach(() => {
@@ -203,9 +196,6 @@ describe("/api/contacts/[id]/merge", () => {
 
     // Verify transaction was called
     expect(mockTransaction).toHaveBeenCalled();
-
-    // Verify event was created
-    expect(createEventContactMerged).toHaveBeenCalledWith(2, "John Doe", 1);
   });
 
   it("should successfully merge comments when requested", async () => {
@@ -284,6 +274,240 @@ describe("/api/contacts/[id]/merge", () => {
     expect(mockTransaction).toHaveBeenCalled();
 
     // Should have called update once for comments
+    expect(mockUpdateCalls).toHaveLength(1);
+  });
+
+  it("should update activityEvents contactId when mergeEvents is true", async () => {
+    // Mock transaction that tracks what tables get updated
+    const mockUpdateCalls: { table: any; setArgs: any }[] = [];
+    const mockTransaction = vi.fn().mockImplementation(async (callback) => {
+      await callback({
+        update: vi.fn().mockImplementation((table) => {
+          return {
+            set: vi.fn().mockImplementation((setArgs) => {
+              mockUpdateCalls.push({ table, setArgs });
+              return {
+                where: vi.fn(),
+              };
+            }),
+          };
+        }),
+        delete: vi.fn().mockReturnValue({
+          where: vi.fn(),
+        }),
+      });
+    });
+
+    db.transaction = mockTransaction;
+
+    // Mock contacts exist and are different
+    let callCount = 0;
+    db.select.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockImplementation(() => {
+            callCount++;
+            if (callCount === 1) {
+              return Promise.resolve([
+                {
+                  id: 1,
+                  firstName: "John",
+                  lastName: "Doe",
+                },
+              ]);
+            } else {
+              return Promise.resolve([
+                {
+                  id: 2,
+                  firstName: "Jane",
+                  lastName: "Smith",
+                },
+              ]);
+            }
+          }),
+        }),
+      }),
+    });
+
+    const params = Promise.resolve({ id: "1" });
+    const req = {
+      json: vi.fn().mockResolvedValue({
+        targetContactId: 2,
+        mergeEmailAddresses: false,
+        mergeEmails: false,
+        mergeLeads: false,
+        mergeComments: false,
+        mergeEvents: true, // Only merge events
+        mergeFollowups: false,
+        deleteSourceContact: false,
+      }),
+    };
+
+    const response = await POST(req as any, { params });
+    expect(response.status).toBe(200);
+
+    const data = await response.json();
+    expect(data.success).toBe(true);
+
+    // Verify transaction was called
+    expect(mockTransaction).toHaveBeenCalled();
+
+    // Should have called update once for activityEvents
+    expect(mockUpdateCalls).toHaveLength(1);
+
+    // Verify the contactId was set to targetContactId (2)
+    expect(mockUpdateCalls[0].setArgs).toEqual({ contactId: 2 });
+  });
+
+  it("should merge all selected items in a single transaction", async () => {
+    // Mock transaction that tracks all operations
+    const mockUpdateCalls: { table: any }[] = [];
+    const mockDeleteCalls: { table: any }[] = [];
+    const mockTransaction = vi.fn().mockImplementation(async (callback) => {
+      await callback({
+        update: vi.fn().mockImplementation((table) => {
+          mockUpdateCalls.push({ table });
+          return {
+            set: vi.fn().mockReturnValue({
+              where: vi.fn(),
+            }),
+          };
+        }),
+        delete: vi.fn().mockImplementation((table) => {
+          mockDeleteCalls.push({ table });
+          return {
+            where: vi.fn(),
+          };
+        }),
+      });
+    });
+
+    db.transaction = mockTransaction;
+
+    // Mock contacts exist and are different
+    let callCount = 0;
+    db.select.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockImplementation(() => {
+            callCount++;
+            if (callCount === 1) {
+              return Promise.resolve([
+                {
+                  id: 1,
+                  firstName: "John",
+                  lastName: "Doe",
+                },
+              ]);
+            } else {
+              return Promise.resolve([
+                {
+                  id: 2,
+                  firstName: "Jane",
+                  lastName: "Smith",
+                },
+              ]);
+            }
+          }),
+        }),
+      }),
+    });
+
+    const params = Promise.resolve({ id: "1" });
+    const req = {
+      json: vi.fn().mockResolvedValue({
+        targetContactId: 2,
+        mergeEmailAddresses: true,
+        mergeEmails: true,
+        mergeLeads: true,
+        mergeComments: true,
+        mergeEvents: true,
+        mergeFollowups: true,
+        deleteSourceContact: true,
+      }),
+    };
+
+    const response = await POST(req as any, { params });
+    expect(response.status).toBe(200);
+
+    // Verify transaction was called
+    expect(mockTransaction).toHaveBeenCalled();
+
+    // Should have called update for all 6 merge operations:
+    // contactEmails, emails, leads, comments, activityEvents, followups
+    expect(mockUpdateCalls).toHaveLength(6);
+
+    // Should have called delete for the source contact
+    expect(mockDeleteCalls).toHaveLength(1);
+  });
+
+  it("should not merge events when mergeEvents is false", async () => {
+    const mockUpdateCalls: { table: any }[] = [];
+    const mockTransaction = vi.fn().mockImplementation(async (callback) => {
+      await callback({
+        update: vi.fn().mockImplementation((table) => {
+          mockUpdateCalls.push({ table });
+          return {
+            set: vi.fn().mockReturnValue({
+              where: vi.fn(),
+            }),
+          };
+        }),
+        delete: vi.fn().mockReturnValue({
+          where: vi.fn(),
+        }),
+      });
+    });
+
+    db.transaction = mockTransaction;
+
+    // Mock contacts exist and are different
+    let callCount = 0;
+    db.select.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockImplementation(() => {
+            callCount++;
+            if (callCount === 1) {
+              return Promise.resolve([
+                {
+                  id: 1,
+                  firstName: "John",
+                  lastName: "Doe",
+                },
+              ]);
+            } else {
+              return Promise.resolve([
+                {
+                  id: 2,
+                  firstName: "Jane",
+                  lastName: "Smith",
+                },
+              ]);
+            }
+          }),
+        }),
+      }),
+    });
+
+    const params = Promise.resolve({ id: "1" });
+    const req = {
+      json: vi.fn().mockResolvedValue({
+        targetContactId: 2,
+        mergeEmailAddresses: true,
+        mergeEmails: false,
+        mergeLeads: false,
+        mergeComments: false,
+        mergeEvents: false, // Events NOT merged
+        mergeFollowups: false,
+        deleteSourceContact: false,
+      }),
+    };
+
+    const response = await POST(req as any, { params });
+    expect(response.status).toBe(200);
+
+    // Should only have called update for contactEmails (1 operation)
     expect(mockUpdateCalls).toHaveLength(1);
   });
 });

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { ActivityEventItem } from "@/components/hendelseslogg/activity-event-item";
-import { EventFiltersBar, type EventFilters } from "@/components/hendelseslogg/event-filters";
+import { EventFiltersBar, type EventFilters } from "@/components/filters/event-filters";
 import type { ApiActivityEvent, GetActivityEventsResponse } from "@/types/api";
 
 export function EventsClient() {

@@ -22,7 +22,7 @@ const MAIN_NAV_ITEMS: NavItem[] = [
   },
   {
     href: "/followups",
-    label: "Oppfølgninger",
+    label: "Oppgaver",
     icon: ClipboardList,
     isActive: (pathname) => pathname === "/followups",
   },

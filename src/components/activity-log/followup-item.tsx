@@ -100,7 +100,7 @@ export function FollowupItem({
                   )}
                 </div>
               </div>
-              {showBadge && <Badge variant="secondary">Oppfølging</Badge>}
+              {showBadge && <Badge variant="secondary">Oppgave</Badge>}
             </div>
             <div className="whitespace-pre-wrap text-sm">{followup.note}</div>
           </div>

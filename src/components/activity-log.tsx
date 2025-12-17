@@ -1,7 +1,7 @@
 "use client";
 import { useMemo, useRef, useState } from "react";
 import useSWR, { useSWRConfig } from "swr";
-import { CalendarPlus, ChevronsUpDown, MessageSquarePlus } from "lucide-react";
+import { ChevronsUpDown } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -316,7 +316,7 @@ export function ActivityLog({
       <div className="bg-background rounded p-4">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "followup" | "comment")}>
           <TabsList>
-            <TabsTrigger value="followup">Oppfølging</TabsTrigger>
+            <TabsTrigger value="followup">Oppgave</TabsTrigger>
             <TabsTrigger value="comment">Kommentar</TabsTrigger>
           </TabsList>
           <TabsContent value="followup" className="mt-4">
@@ -408,10 +408,8 @@ export function ActivityLog({
                 <Button
                   onClick={saveFollowup}
                   disabled={!newFollowupNote.trim() || !newFollowupDue}
-                  size="sm"
                 >
-                  <CalendarPlus className="h-4 w-4 mr-1.5" />
-                  Lagre oppfølgning
+                  Lagre oppgave
                 </Button>
               </div>
             </div>
@@ -436,8 +434,7 @@ export function ActivityLog({
                 />
               )}
               <div className="flex justify-end">
-                <Button onClick={saveComment} disabled={!newComment.trim()} size="sm">
-                  <MessageSquarePlus className="h-4 w-4 mr-1.5" />
+                <Button onClick={saveComment} disabled={!newComment.trim()}>
                   Lagre kommentar
                 </Button>
               </div>

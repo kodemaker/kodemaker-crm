@@ -20,6 +20,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
       id: leads.id,
       description: leads.description,
       status: leads.status,
+      potentialValue: leads.potentialValue,
       createdAt: leads.createdAt,
       updatedAt: leads.updatedAt,
       createdBy: {
@@ -57,7 +58,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 
 const updateLeadSchema = z.object({
   description: z.string().min(1).optional(),
-  status: z.enum(["NEW", "IN_PROGRESS", "LOST", "WON", "BORTFALT"]).optional(),
+  potentialValue: z.number().int().nullable().optional(),
+  status: z.enum(["NEW", "IN_PROGRESS", "ON_HOLD", "LOST", "WON", "BORTFALT"]).optional(),
 });
 
 export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -95,6 +97,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   if (updated) {
     const changed = [
       parsed.data.description ? "beskrivelse" : undefined,
+      parsed.data.potentialValue !== undefined ? "mulig verdi" : undefined,
       parsed.data.status ? "status" : undefined,
     ]
       .filter(Boolean)

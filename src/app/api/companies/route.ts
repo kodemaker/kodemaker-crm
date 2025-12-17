@@ -42,16 +42,17 @@ export async function GET(req: NextRequest) {
     {
       NEW: number;
       IN_PROGRESS: number;
+      ON_HOLD: number;
       LOST: number;
       WON: number;
       BORTFALT: number;
     }
   > = {};
   for (const id of ids) {
-    byCompany[id] = { NEW: 0, IN_PROGRESS: 0, LOST: 0, WON: 0, BORTFALT: 0 };
+    byCompany[id] = { NEW: 0, IN_PROGRESS: 0, ON_HOLD: 0, LOST: 0, WON: 0, BORTFALT: 0 };
   }
   for (const c of counts) {
-    const status = c.status as "NEW" | "IN_PROGRESS" | "LOST" | "WON" | "BORTFALT";
+    const status = c.status as "NEW" | "IN_PROGRESS" | "ON_HOLD" | "LOST" | "WON" | "BORTFALT";
     byCompany[c.companyId][status] = c.count;
   }
 

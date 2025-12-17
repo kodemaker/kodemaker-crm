@@ -12,12 +12,14 @@ type LeadEventItemProps = {
 
 function getStatusBadgeVariant(
   status: LeadStatus
-): "default" | "primary" | "tertiary" | "destructive" | "bortfalt" {
+): "default" | "primary" | "tertiary" | "destructive" | "bortfalt" | "secondary" {
   switch (status) {
     case "NEW":
       return "default";
     case "IN_PROGRESS":
       return "tertiary";
+    case "ON_HOLD":
+      return "secondary";
     case "WON":
       return "primary"; // chart-2/turquoise per DESIGN_SYSTEM.md
     case "LOST":
@@ -33,6 +35,7 @@ function getShortStatusLabel(status: LeadStatus): string {
   const labels: Record<LeadStatus, string> = {
     NEW: "Ny",
     IN_PROGRESS: "Under arbeid",
+    ON_HOLD: "På vent",
     LOST: "Tapt",
     WON: "Vunnet",
     BORTFALT: "Bortfalt",

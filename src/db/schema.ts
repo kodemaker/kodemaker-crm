@@ -16,6 +16,7 @@ export const userRoleEnum = pgEnum("user_role", ["admin", "user"]);
 export const leadStatusEnum = pgEnum("lead_status", [
   "NEW",
   "IN_PROGRESS",
+  "ON_HOLD",
   "LOST",
   "WON",
   "BORTFALT",
@@ -97,6 +98,7 @@ export const leads = pgTable("leads", {
     onDelete: "set null",
   }),
   description: text("description").notNull(),
+  potentialValue: integer("potential_value"),
   status: leadStatusEnum("status").notNull().default("NEW"),
   createdByUserId: integer("created_by_user_id").references(() => users.id, {
     onDelete: "set null",

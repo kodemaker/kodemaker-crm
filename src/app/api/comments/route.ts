@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { comments, companies, contactCompanyHistory, contacts, leads, users } from "@/db/schema";
-import { createEventCommentCreated } from "@/db/events";
 import { createActivityEventCommentCreated } from "@/db/activity-events";
 import { z } from "zod";
 import { and, desc, eq, inArray } from "drizzle-orm";
@@ -265,14 +264,6 @@ export async function POST(req: NextRequest) {
       .insert(comments)
       .values({ ...parsed.data, createdByUserId: userId })
       .returning();
-    const entity = parsed.data.leadId ? "lead" : parsed.data.companyId ? "company" : "contact";
-    await createEventCommentCreated(
-      entity,
-      (parsed.data.leadId || parsed.data.companyId || parsed.data.contactId)!,
-      parsed.data.companyId,
-      parsed.data.contactId,
-      created.content
-    );
     await createActivityEventCommentCreated({
       commentId: created.id,
       actorUserId: userId,

@@ -16,16 +16,16 @@ Core Principles
 Project Overview
 
 - Stack: Next.js (App Router), TypeScript, Drizzle ORM (Postgres), NextAuth, SWR, shadcn/ui, Tailwind.
-- Realtime: Events via Postgres LISTEN/NOTIFY → SSE at `/api/events/stream`.
+- Realtime: Activity events via Postgres LISTEN/NOTIFY → SSE at `/api/activity-events/stream`.
 - Auth: Google OAuth via NextAuth; middleware redirects to `/login` when not authenticated.
 - Database: Drizzle schema in `src/db/schema.ts`; queries in `src/db/*`.
 - UI: Pages under `src/app`, reusable components under `src/components`.
 
 File/Folder Conventions
 
-- `src/app/api/**/route.ts`: Next.js API routes; validate input with Zod; return typed data; add rich events using `createEventWithContext`.
+- `src/app/api/**/route.ts`: Next.js API routes; validate input with Zod; return typed data; add activity events using functions from `src/db/activity-events.ts`.
 - `src/db/schema.ts`: single source of truth for DB schema.
-- `src/db/events.ts`: use `createEventWithContext(entity, entityId, verb, { companyId?, contactId?, excerpt? })`.
+- `src/db/activity-events.ts`: use `createActivityEventCommentCreated`, `createActivityEventLeadCreated`, `createActivityEventLeadStatusChanged`, `createActivityEventEmailReceived`.
 - `src/types/api.ts`: exported response shapes; update when API changes.
 - `__tests__/api` and `__tests__/ui` (if present): keep tests organized by layer.
 - Strings: Norwegian product copy; use “Organisasjon/Organisasjoner” instead of “Kunde/Kunder”.

@@ -22,7 +22,6 @@ export const leadStatusEnum = pgEnum("lead_status", [
   "BORTFALT",
 ]);
 export const emailModeEnum = pgEnum("email_mode", ["FORWARDED", "BCC"]);
-export const eventEntityEnum = pgEnum("event_entity", ["company", "contact", "lead"]);
 export const activityEventTypeEnum = pgEnum("activity_event_type", [
   "comment_created",
   "lead_created",
@@ -168,14 +167,6 @@ export const followups = pgTable("followups", {
       onDelete: "restrict",
     }),
   completedAt: timestamp("completed_at", { withTimezone: true }),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
-
-export const events = pgTable("events", {
-  id: serial("id").primaryKey(),
-  entity: eventEntityEnum("entity").notNull(),
-  entityId: integer("entity_id").notNull(),
-  description: text("description").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

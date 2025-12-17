@@ -2,11 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { followups } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import {
-  createEventFollowupCompleted,
-  createEventFollowupDeleted,
-  createEventFollowupUpdated,
-} from "@/db/events";
 import { z } from "zod";
 import { requireApiAuth } from "@/lib/require-api-auth";
 
@@ -61,30 +56,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .where(eq(followups.id, id))
     .returning();
 
-  const entity = row.leadId ? "lead" : row.companyId ? "company" : "contact";
-  const entityId = row.leadId || row.companyId || row.contactId;
-  if (entityId) {
-    // If completing, use the completed event
-    if (parsed.data.completedAt !== undefined && parsed.data.completedAt !== null) {
-      await createEventFollowupCompleted(
-        entity as "lead" | "company" | "contact",
-        entityId,
-        row.companyId ?? undefined,
-        row.contactId ?? undefined,
-        updated.note
-      );
-    } else {
-      // Otherwise, use the updated event
-      await createEventFollowupUpdated(
-        entity as "lead" | "company" | "contact",
-        entityId,
-        row.companyId ?? undefined,
-        row.contactId ?? undefined,
-        updated.note
-      );
-    }
-  }
-
   return NextResponse.json(updated);
 }
 
@@ -101,18 +72,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await db.delete(followups).where(eq(followups.id, id));
-
-  const entity = row.leadId ? "lead" : row.companyId ? "company" : "contact";
-  const entityId = row.leadId || row.companyId || row.contactId;
-  if (entityId) {
-    await createEventFollowupDeleted(
-      entity as "lead" | "company" | "contact",
-      entityId,
-      row.companyId ?? undefined,
-      row.contactId ?? undefined,
-      row.note
-    );
-  }
 
   return NextResponse.json({ success: true });
 }

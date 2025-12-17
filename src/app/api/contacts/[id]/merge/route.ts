@@ -1,9 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/client";
-import { contacts, contactEmails, emails, leads, comments, followups, events } from "@/db/schema";
+import {
+  contacts,
+  contactEmails,
+  emails,
+  leads,
+  comments,
+  followups,
+  activityEvents,
+} from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { createEventContactMerged, createEventContactDeleted } from "@/db/events";
 import { requireApiAuth } from "@/lib/require-api-auth";
 
 const mergeContactSchema = z.object({
@@ -67,9 +74,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   }
 
   try {
-    const sourceContactName = `${sourceContact.firstName} ${sourceContact.lastName}`;
-    const targetContactName = `${targetContact.firstName} ${targetContact.lastName}`;
-
     // Start a transaction to ensure data consistency
     await db.transaction(async (tx) => {
       // Merge email addresses
@@ -104,12 +108,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           .where(eq(comments.contactId, sourceContactId));
       }
 
-      // Merge events (note: events table has entityId, not contactId)
+      // Merge activity events (using activity_events table with contactId)
       if (mergeEvents) {
         await tx
-          .update(events)
-          .set({ entityId: targetContactId })
-          .where(eq(events.entityId, sourceContactId));
+          .update(activityEvents)
+          .set({ contactId: targetContactId })
+          .where(eq(activityEvents.contactId, sourceContactId));
       }
 
       // Merge followups
@@ -120,13 +124,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
           .where(eq(followups.contactId, sourceContactId));
       }
 
-      // Create merge event
-      await createEventContactMerged(targetContactId, sourceContactName, sourceContactId);
-
       // Delete source contact if requested
       if (deleteSourceContact) {
         await tx.delete(contacts).where(eq(contacts.id, sourceContactId));
-        await createEventContactDeleted(sourceContactId, sourceContactName, targetContactName);
       }
     });
 

@@ -3,7 +3,6 @@ import { db } from "@/db/client";
 import { contactEmails } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { z } from "zod";
-import { createEventContactEmailAdded } from "@/db/events";
 import { requireApiAuth } from "@/lib/require-api-auth";
 
 const createContactEmailSchema = z.object({
@@ -63,9 +62,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       active: parsed.data.active,
     })
     .returning();
-
-  // Log event for email creation
-  await createEventContactEmailAdded(contactId, parsed.data.email, parsed.data.active ?? true);
 
   return NextResponse.json(created);
 }

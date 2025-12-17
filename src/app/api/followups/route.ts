@@ -4,7 +4,6 @@ import { companies, contactCompanyHistory, contacts, followups, leads, users } f
 import { z } from "zod";
 import { requireApiAuth } from "@/lib/require-api-auth";
 import { and, asc, desc, eq, inArray, isNotNull, isNull, ne } from "drizzle-orm";
-import { createEventFollowupCreated } from "@/db/events";
 import { logger } from "@/lib/logger";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { getServerSession } from "next-auth";
@@ -341,14 +340,6 @@ export async function POST(req: NextRequest) {
         assignedToUserId: parsed.data.assignedToUserId ?? userId,
       })
       .returning();
-    const entity = parsed.data.leadId ? "lead" : parsed.data.companyId ? "company" : "contact";
-    await createEventFollowupCreated(
-      entity,
-      (parsed.data.leadId || parsed.data.companyId || parsed.data.contactId)!,
-      parsed.data.companyId,
-      parsed.data.contactId,
-      created.note
-    );
     return NextResponse.json(created);
   } catch (error) {
     logger.error({ route: "/api/followups", method: "POST", error }, "Error creating followup");

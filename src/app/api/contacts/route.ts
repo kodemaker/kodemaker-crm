@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { contactCompanyHistory, contactEmails, contacts } from "@/db/schema";
 import { z } from "zod";
-import { createEventContactCreated } from "@/db/events";
 import { listContacts } from "@/db/contacts";
 import { requireApiAuth } from "@/lib/require-api-auth";
 
@@ -59,8 +58,6 @@ export async function POST(req: NextRequest) {
       active: true,
     });
   }
-
-  await createEventContactCreated(created.id, companyId);
 
   if (companyId) {
     const today = new Date().toISOString().slice(0, 10);

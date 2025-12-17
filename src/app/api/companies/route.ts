@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { companies, leads } from "@/db/schema";
-import { createEventCompanyCreated } from "@/db/events";
 import { z } from "zod";
 import { ilike, inArray, sql } from "drizzle-orm";
 import { requireApiAuth } from "@/lib/require-api-auth";
@@ -80,6 +79,5 @@ export async function POST(req: NextRequest) {
     .insert(companies)
     .values({ ...parsed.data, createdByUserId: userId })
     .returning();
-  await createEventCompanyCreated(created.id);
   return NextResponse.json(created);
 }

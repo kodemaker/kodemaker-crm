@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { comments } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { createEventCommentDeleted, createEventCommentUpdated } from "@/db/events";
 import { z } from "zod";
 import { requireApiAuth } from "@/lib/require-api-auth";
 
@@ -39,18 +38,6 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     .where(eq(comments.id, id))
     .returning();
 
-  const entity = row.leadId ? "lead" : row.companyId ? "company" : "contact";
-  const entityId = row.leadId || row.companyId || row.contactId;
-  if (entityId) {
-    await createEventCommentUpdated(
-      entity as "lead" | "company" | "contact",
-      entityId,
-      row.companyId ?? undefined,
-      row.contactId ?? undefined,
-      updated.content
-    );
-  }
-
   return NextResponse.json(updated);
 }
 
@@ -67,18 +54,6 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   if (!row) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
   await db.delete(comments).where(eq(comments.id, id));
-
-  const entity = row.leadId ? "lead" : row.companyId ? "company" : "contact";
-  const entityId = row.leadId || row.companyId || row.contactId;
-  if (entityId) {
-    await createEventCommentDeleted(
-      entity as "lead" | "company" | "contact",
-      entityId,
-      row.companyId ?? undefined,
-      row.contactId ?? undefined,
-      row.content
-    );
-  }
 
   return NextResponse.json({ success: true });
 }

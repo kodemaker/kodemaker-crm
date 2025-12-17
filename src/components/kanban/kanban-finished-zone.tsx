@@ -60,6 +60,7 @@ function FinishedDropZone({
   return (
     <div
       ref={setNodeRef}
+      data-droppable-id={id}
       className={cn(
         "flex-1 flex flex-col items-center justify-center rounded-lg border-2 border-dashed transition-all",
         VARIANT_STYLES[variant],

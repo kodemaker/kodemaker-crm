@@ -256,7 +256,7 @@ export function MergeContactsDialog({
                   className="rounded"
                 />
                 <span className={contactCounts.followups === 0 ? "text-muted-foreground" : ""}>
-                  Oppfølginger ({contactCounts.followups})
+                  Oppgaver ({contactCounts.followups})
                 </span>
               </label>
             </div>

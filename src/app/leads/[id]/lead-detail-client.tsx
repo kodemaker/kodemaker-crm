@@ -180,6 +180,7 @@ function LeadForm({
       </section>
 
       <ActivityLog
+        leadId={data.id}
         contactId={data.contact?.id}
         companyId={data.company?.id}
       />

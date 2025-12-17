@@ -57,6 +57,7 @@ type ActivityItem =
   | { type: "email"; data: ApiEmail };
 
 type ActivityLogProps = {
+  leadId?: number;
   contactId?: number;
   companyId?: number;
   contactIds?: number[];
@@ -75,19 +76,29 @@ type Lead = {
   status: LeadStatus;
 };
 
-function buildQueryParams(contactId?: number, companyId?: number, contactIds?: number[]) {
-  const followupParams = contactId
-    ? `contactId=${contactId}&all=1`
-    : companyId
-      ? `companyId=${companyId}&all=1`
-      : "all=1";
+function buildQueryParams(
+  leadId?: number,
+  contactId?: number,
+  companyId?: number,
+  contactIds?: number[]
+) {
+  const followupParams = leadId
+    ? `leadId=${leadId}&all=1`
+    : contactId
+      ? `contactId=${contactId}&all=1`
+      : companyId
+        ? `companyId=${companyId}&all=1`
+        : "all=1";
 
-  const commentParams = contactId
-    ? `contactId=${contactId}`
-    : companyId
-      ? `companyId=${companyId}`
-      : null;
+  const commentParams = leadId
+    ? `leadId=${leadId}`
+    : contactId
+      ? `contactId=${contactId}`
+      : companyId
+        ? `companyId=${companyId}`
+        : null;
 
+  // emailParams unchanged - leads don't have direct emails
   const emailParams = contactId
     ? `contactId=${contactId}`
     : companyId
@@ -100,6 +111,7 @@ function buildQueryParams(contactId?: number, companyId?: number, contactIds?: n
 }
 
 export function ActivityLog({
+  leadId,
   contactId,
   companyId,
   contactIds,
@@ -123,6 +135,7 @@ export function ActivityLog({
   const hasSetDefaultUser = useRef(false);
 
   const { followupParams, commentParams, emailParams } = buildQueryParams(
+    leadId,
     contactId,
     companyId,
     contactIds
@@ -148,11 +161,14 @@ export function ActivityLog({
   const { data: users } = useSWR<User[]>(`/api/users`);
   const { data: session } = useSession();
 
-  const leadsEndpoint = contactId
-    ? `/api/leads?contactId=${contactId}`
-    : companyId
-      ? `/api/leads?companyId=${companyId}`
-      : null;
+  // Don't fetch leads when already on a lead page (leadId provided)
+  const leadsEndpoint = leadId
+    ? null
+    : contactId
+      ? `/api/leads?contactId=${contactId}`
+      : companyId
+        ? `/api/leads?companyId=${companyId}`
+        : null;
   const { data: leads } = useSWR<Lead[]>(leadsEndpoint);
 
   const emails = fetchedEmails ?? initialEmails;
@@ -174,7 +190,7 @@ export function ActivityLog({
       content: newComment,
       ...(contactId ? { contactId } : {}),
       ...(companyId ? { companyId } : {}),
-      ...(selectedLead ? { leadId: selectedLead.id } : {}),
+      ...(leadId ? { leadId } : selectedLead ? { leadId: selectedLead.id } : {}),
     };
     const res = await fetch("/api/comments", {
       method: "POST",
@@ -202,7 +218,7 @@ export function ActivityLog({
       ...(contactId ? { contactId } : {}),
       ...(companyId ? { companyId } : {}),
       ...(selectedUser ? { assignedToUserId: selectedUser.id } : {}),
-      ...(selectedLead ? { leadId: selectedLead.id } : {}),
+      ...(leadId ? { leadId } : selectedLead ? { leadId: selectedLead.id } : {}),
     };
     const res = await fetch("/api/followups", {
       method: "POST",

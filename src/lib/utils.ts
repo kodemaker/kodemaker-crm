@@ -128,6 +128,25 @@ export function formatCurrency(value: number): string {
 }
 
 /**
+ * Formats a number with Norwegian thousand separators (non-breaking space).
+ * Example: 500000 -> "500 000", 1000000 -> "1 000 000"
+ */
+export function formatNumberWithSeparators(value: number | null | undefined): string {
+  if (value == null) return "";
+  return value.toLocaleString("nb-NO");
+}
+
+/**
+ * Parses a formatted number string, removing spaces and non-digit characters.
+ * Returns null if the string is empty, otherwise returns the parsed integer.
+ * Example: "500 000" -> 500000, "1 000 000" -> 1000000
+ */
+export function parseFormattedNumber(value: string): number | null {
+  const raw = value.replace(/\s/g, "").replace(/[^0-9]/g, "");
+  return raw === "" ? null : parseInt(raw, 10);
+}
+
+/**
  * Truncates text to a maximum length, appending ellipsis if truncated.
  */
 export function truncateText(text: string, maxLength: number): string {

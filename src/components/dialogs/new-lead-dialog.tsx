@@ -29,6 +29,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { LeadStatusSelect } from "@/components/lead-status-select";
+import { formatNumberWithSeparators, parseFormattedNumber } from "@/lib/utils";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
@@ -214,13 +215,11 @@ export function NewLeadDialog({
                     <FormLabel>Mulig verdi (NOK)</FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
-                        placeholder="f.eks. 500000"
-                        value={field.value ?? ""}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          field.onChange(val === "" ? null : parseInt(val, 10));
-                        }}
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="f.eks. 500 000"
+                        value={formatNumberWithSeparators(field.value)}
+                        onChange={(e) => field.onChange(parseFormattedNumber(e.target.value))}
                       />
                     </FormControl>
                     <FormMessage />

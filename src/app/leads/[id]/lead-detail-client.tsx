@@ -23,6 +23,7 @@ import { toast } from "sonner";
 import { LeadHeader } from "@/components/entity-summary-header";
 import { LeadStatusSelect, type LeadStatus } from "@/components/lead-status-select";
 import { ActivityLog } from "@/components/activity-log";
+import { formatNumberWithSeparators, parseFormattedNumber } from "@/lib/utils";
 
 const schema = z.object({
   description: z.string().min(1),
@@ -156,14 +157,12 @@ function LeadForm({
                     <FormLabel>Mulig verdi (NOK)</FormLabel>
                     <FormControl>
                       <Input
-                        type="number"
-                        placeholder="f.eks. 500000"
+                        type="text"
+                        inputMode="numeric"
+                        placeholder="f.eks. 500 000"
                         className="bg-background"
-                        value={field.value ?? ""}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          field.onChange(val === "" ? null : parseInt(val, 10));
-                        }}
+                        value={formatNumberWithSeparators(field.value)}
+                        onChange={(e) => field.onChange(parseFormattedNumber(e.target.value))}
                       />
                     </FormControl>
                     <FormMessage />

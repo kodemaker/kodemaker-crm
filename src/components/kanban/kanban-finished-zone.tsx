@@ -126,8 +126,8 @@ function FinishedLeadCard({
           )}
           <p className="text-sm line-clamp-2">{lead.description}</p>
           {lead.potentialValue != null && lead.potentialValue > 0 && (
-            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-              <Banknote className="h-3.5 w-3.5" />
+            <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
+              <Banknote className="h-4 w-4" />
               <span>{formatShortCurrency(lead.potentialValue)}</span>
             </div>
           )}
@@ -195,7 +195,7 @@ export function KanbanFinishedZone({
           <span>
             Vunnet: {wonLeads.length}
             {sumPotentialValue(wonLeads) > 0 && (
-              <span className="text-muted-foreground ml-1">
+              <span className="ml-1">
                 ({formatShortCurrency(sumPotentialValue(wonLeads))})
               </span>
             )}
@@ -206,7 +206,7 @@ export function KanbanFinishedZone({
           <span>
             Tapt: {lostLeads.length}
             {sumPotentialValue(lostLeads) > 0 && (
-              <span className="text-muted-foreground ml-1">
+              <span className="ml-1">
                 ({formatShortCurrency(sumPotentialValue(lostLeads))})
               </span>
             )}
@@ -217,7 +217,7 @@ export function KanbanFinishedZone({
           <span>
             Bortfalt: {bortfaltLeads.length}
             {sumPotentialValue(bortfaltLeads) > 0 && (
-              <span className="text-muted-foreground ml-1">
+              <span className="ml-1">
                 ({formatShortCurrency(sumPotentialValue(bortfaltLeads))})
               </span>
             )}

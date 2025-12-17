@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import useSWR from "swr";
 import { Check, Filter, Loader2, User, UserMinus, Users } from "lucide-react";
+import { ClearFilterButton } from "@/components/filters/clear-filter-button";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -28,9 +29,30 @@ export interface UserFilterProps {
   value: UserFilterValue;
   onChange: (value: UserFilterValue) => void;
   className?: string;
+  /** The value that represents "no filter" state. Defaults to "mine". */
+  defaultValue?: UserFilterValue;
+  /** Label to show when filter is in default state. Defaults to showing the value name. */
+  defaultLabel?: string;
+  /** Custom labels for filter options */
+  labels?: {
+    mine?: string;
+    excludeMine?: string;
+  };
+  /** Hide filter and user icons on the button. Useful when part of a larger filter bar. */
+  hideIcons?: boolean;
 }
 
-export function UserFilter({ value, onChange, className }: UserFilterProps) {
+export function UserFilter({
+  value,
+  onChange,
+  className,
+  defaultValue = "mine",
+  defaultLabel,
+  labels,
+  hideIcons = false,
+}: UserFilterProps) {
+  const mineLabel = labels?.mine ?? "Mine";
+  const excludeMineLabel = labels?.excludeMine ?? "Uten mine";
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
 
@@ -53,17 +75,19 @@ export function UserFilter({ value, onChange, className }: UserFilterProps) {
     return users?.find((u) => u.id === value) ?? null;
   }, [users, value]);
 
-  // Reset to "mine" if the selected user no longer exists (e.g., was deleted)
+  // Reset to default if the selected user no longer exists (e.g., was deleted)
   useEffect(() => {
     if (typeof value === "number" && users && !users.some((u) => u.id === value)) {
-      onChange("mine");
+      onChange(defaultValue);
     }
-  }, [value, users, onChange]);
+  }, [value, users, onChange, defaultValue]);
 
   const displayText = useMemo(() => {
-    if (value === "mine") return "Mine";
+    // Use custom label for default value if provided
+    if (value === defaultValue && defaultLabel) return defaultLabel;
+    if (value === "mine") return mineLabel;
     if (value === "all") return "Alle";
-    if (value === "excludeMine") return "Uten mine";
+    if (value === "excludeMine") return excludeMineLabel;
     if (selectedUser) {
       return `${selectedUser.firstName} ${selectedUser.lastName}`;
     }
@@ -72,18 +96,20 @@ export function UserFilter({ value, onChange, className }: UserFilterProps) {
       return "Laster...";
     }
     return "Ukjent bruker";
-  }, [value, selectedUser, isLoading]);
+  }, [value, selectedUser, isLoading, defaultValue, defaultLabel, mineLabel, excludeMineLabel]);
 
   const displayIcon = useMemo(() => {
     if (isLoading && typeof value === "number") {
       return <Loader2 className="h-4 w-4 animate-spin" />;
     }
     if (value === "all") return <Users className="h-4 w-4" />;
-    if (value === "excludeMine") return <UserMinus className="h-4 w-4" />;
+    if (value === "excludeMine") {
+      return labels?.excludeMine ? <Users className="h-4 w-4" /> : <UserMinus className="h-4 w-4" />;
+    }
     return <User className="h-4 w-4" />;
-  }, [value, isLoading]);
+  }, [value, isLoading, labels?.excludeMine]);
 
-  const isFiltered = value !== "mine";
+  const isFiltered = value !== defaultValue;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -94,18 +120,30 @@ export function UserFilter({ value, onChange, className }: UserFilterProps) {
           aria-expanded={open}
           aria-label={`Filter: ${displayText}`}
           disabled={isLoading && !users}
+          size={hideIcons ? "sm" : "default"}
           className={cn(
             "justify-between gap-2",
             isFiltered && "border-primary/50 bg-primary/5",
+            hideIcons && "h-8",
             className
           )}
         >
-          <Filter
-            className={cn("h-4 w-4", isFiltered ? "text-primary" : "text-muted-foreground")}
-            aria-hidden="true"
-          />
+          {!hideIcons && (
+            <Filter
+              className={cn("h-4 w-4", isFiltered ? "text-primary" : "text-muted-foreground")}
+              aria-hidden="true"
+            />
+          )}
           <span>{displayText}</span>
-          {displayIcon}
+          {!hideIcons && displayIcon}
+          {hideIcons && isFiltered && (
+            <ClearFilterButton
+              onClear={() => {
+                onChange(defaultValue);
+                setOpen(false);
+              }}
+            />
+          )}
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[220px] p-0" align="end">
@@ -115,7 +153,7 @@ export function UserFilter({ value, onChange, className }: UserFilterProps) {
             <CommandEmpty>Ingen treff</CommandEmpty>
             <CommandGroup>
               <CommandItem
-                value="mine"
+                value={mineLabel}
                 onSelect={() => {
                   onChange("mine");
                   setOpen(false);
@@ -123,35 +161,41 @@ export function UserFilter({ value, onChange, className }: UserFilterProps) {
                 }}
               >
                 <User className="mr-2 h-4 w-4" />
-                Mine
+                {mineLabel}
                 <Check
                   className={cn("ml-auto h-4 w-4", value === "mine" ? "opacity-100" : "opacity-0")}
                 />
               </CommandItem>
+              {defaultValue !== "all" && (
+                <CommandItem
+                  value="all"
+                  onSelect={() => {
+                    onChange("all");
+                    setOpen(false);
+                    setQuery("");
+                  }}
+                >
+                  <Users className="mr-2 h-4 w-4" />
+                  Alle
+                  <Check
+                    className={cn("ml-auto h-4 w-4", value === "all" ? "opacity-100" : "opacity-0")}
+                  />
+                </CommandItem>
+              )}
               <CommandItem
-                value="all"
-                onSelect={() => {
-                  onChange("all");
-                  setOpen(false);
-                  setQuery("");
-                }}
-              >
-                <Users className="mr-2 h-4 w-4" />
-                Alle
-                <Check
-                  className={cn("ml-auto h-4 w-4", value === "all" ? "opacity-100" : "opacity-0")}
-                />
-              </CommandItem>
-              <CommandItem
-                value="excludeMine"
+                value={excludeMineLabel}
                 onSelect={() => {
                   onChange("excludeMine");
                   setOpen(false);
                   setQuery("");
                 }}
               >
-                <UserMinus className="mr-2 h-4 w-4" />
-                Uten mine
+                {labels?.excludeMine ? (
+                  <Users className="mr-2 h-4 w-4" />
+                ) : (
+                  <UserMinus className="mr-2 h-4 w-4" />
+                )}
+                {excludeMineLabel}
                 <Check
                   className={cn(
                     "ml-auto h-4 w-4",

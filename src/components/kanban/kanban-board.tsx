@@ -117,25 +117,39 @@ export function KanbanBoard() {
 
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
-    setActiveId(null);
 
-    if (!over) return;
+    if (!over) {
+      setActiveId(null);
+      return;
+    }
 
     const newStatus = getStatusFromDroppableId(over.id as string);
-    if (!newStatus) return;
+    if (!newStatus) {
+      setActiveId(null);
+      return;
+    }
 
     const leadId = parseInt((active.id as string).replace("lead-", ""), 10);
     const lead = leads.find((l) => l.id === leadId);
-    if (!lead || lead.status === newStatus) return;
-
-    // Trigger confetti for won leads
-    if (newStatus === "WON") {
-      confetti({
-        particleCount: 100,
-        spread: 70,
-        origin: { y: 0.6 },
-      });
+    if (!lead || lead.status === newStatus) {
+      setActiveId(null);
+      return;
     }
+
+    // Capture confetti origin while drop zone is still visible (from bottom of zone)
+    let confettiOrigin = { x: 0.5, y: 0.6 };
+    if (newStatus === "WON") {
+      const dropElement = document.querySelector('[data-droppable-id="status-WON"]');
+      if (dropElement) {
+        const rect = dropElement.getBoundingClientRect();
+        confettiOrigin = {
+          x: (rect.left + rect.width / 2) / window.innerWidth,
+          y: rect.bottom / window.innerHeight,
+        };
+      }
+    }
+
+    setActiveId(null);
 
     // Optimistic update
     mutate(
@@ -156,6 +170,13 @@ export function KanbanBoard() {
         // Revert on error
         mutate("/api/leads");
         toast.error("Kunne ikke oppdatere lead status");
+      } else if (newStatus === "WON") {
+        // Celebrate successful win with confetti from drop zone
+        confetti({
+          particleCount: 100,
+          spread: 100,
+          origin: confettiOrigin,
+        });
       }
     } catch {
       // Revert on error

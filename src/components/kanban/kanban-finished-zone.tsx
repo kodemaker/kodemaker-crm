@@ -4,7 +4,7 @@ import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Building2, Trophy, XCircle, MinusCircle } from "lucide-react";
+import { Banknote, Building2, Trophy, XCircle, MinusCircle } from "lucide-react";
 import Link from "next/link";
 import type { KanbanLead } from "./kanban-lead-card";
 
@@ -14,6 +14,35 @@ type KanbanFinishedZoneProps = {
   bortfaltLeads: KanbanLead[];
   isDragging: boolean;
 };
+
+// Style constants extracted outside component to avoid recreation on each render
+const VARIANT_STYLES = {
+  won: "bg-primary/10 border-primary/30",
+  lost: "bg-destructive/10 border-destructive/30",
+  bortfalt: "bg-muted border-muted-foreground/30",
+} as const;
+
+const ICON_STYLES = {
+  won: "text-primary",
+  lost: "text-destructive",
+  bortfalt: "text-muted-foreground",
+} as const;
+
+function formatShortCurrency(value: number): string {
+  if (value >= 1_000_000) {
+    const millions = value / 1_000_000;
+    return `${millions.toLocaleString("nb-NO", { maximumFractionDigits: 1 })} mill`;
+  }
+  if (value >= 1_000) {
+    const thousands = value / 1_000;
+    return `${thousands.toLocaleString("nb-NO", { maximumFractionDigits: 0 })} K`;
+  }
+  return value.toLocaleString("nb-NO");
+}
+
+function sumPotentialValue(leads: KanbanLead[]): number {
+  return leads.reduce((sum, lead) => sum + (lead.potentialValue ?? 0), 0);
+}
 
 function FinishedDropZone({
   id,
@@ -28,30 +57,18 @@ function FinishedDropZone({
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
 
-  const variantStyles = {
-    won: "bg-primary/10 border-primary/30",
-    lost: "bg-destructive/10 border-destructive/30",
-    bortfalt: "bg-muted border-muted-foreground/30",
-  };
-
-  const iconStyles = {
-    won: "text-primary",
-    lost: "text-destructive",
-    bortfalt: "text-muted-foreground",
-  };
-
   return (
     <div
       ref={setNodeRef}
       className={cn(
         "flex-1 flex flex-col items-center justify-center rounded-lg border-2 border-dashed transition-all",
-        variantStyles[variant],
+        VARIANT_STYLES[variant],
         isOver && variant === "won" && "bg-primary/30 border-primary scale-105",
         isOver && variant === "lost" && "bg-destructive/30 border-destructive scale-105",
         isOver && variant === "bortfalt" && "bg-accent/50 border-accent scale-105"
       )}
     >
-      <Icon className={cn("h-8 w-8 mb-2", iconStyles[variant])} />
+      <Icon className={cn("h-8 w-8 mb-2", ICON_STYLES[variant])} />
       <span className="font-medium text-sm">{title}</span>
     </div>
   );
@@ -87,6 +104,8 @@ function FinishedLeadCard({
       )}
       {...listeners}
       {...attributes}
+      aria-label={`Lead: ${lead.description.slice(0, 50)}${lead.description.length > 50 ? "…" : ""}`}
+      aria-roledescription="draggable lead card"
     >
       <Icon className={cn("absolute top-3 right-3 h-4 w-4", iconClass)} />
       <Link
@@ -106,6 +125,12 @@ function FinishedLeadCard({
             </Badge>
           )}
           <p className="text-sm line-clamp-2">{lead.description}</p>
+          {lead.potentialValue != null && lead.potentialValue > 0 && (
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Banknote className="h-3.5 w-3.5" />
+              <span>{formatShortCurrency(lead.potentialValue)}</span>
+            </div>
+          )}
         </div>
       </Link>
     </div>
@@ -167,15 +192,36 @@ export function KanbanFinishedZone({
       <div className="p-2 border-b bg-muted/30 space-y-1 text-sm">
         <div className="flex items-center gap-2">
           <Trophy className="h-4 w-4 text-primary" />
-          <span>Vunnet: {wonLeads.length}</span>
+          <span>
+            Vunnet: {wonLeads.length}
+            {sumPotentialValue(wonLeads) > 0 && (
+              <span className="text-muted-foreground ml-1">
+                ({formatShortCurrency(sumPotentialValue(wonLeads))})
+              </span>
+            )}
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <XCircle className="h-4 w-4 text-destructive" />
-          <span>Tapt: {lostLeads.length}</span>
+          <span>
+            Tapt: {lostLeads.length}
+            {sumPotentialValue(lostLeads) > 0 && (
+              <span className="text-muted-foreground ml-1">
+                ({formatShortCurrency(sumPotentialValue(lostLeads))})
+              </span>
+            )}
+          </span>
         </div>
         <div className="flex items-center gap-2">
           <MinusCircle className="h-4 w-4 text-muted-foreground" />
-          <span>Bortfalt: {bortfaltLeads.length}</span>
+          <span>
+            Bortfalt: {bortfaltLeads.length}
+            {sumPotentialValue(bortfaltLeads) > 0 && (
+              <span className="text-muted-foreground ml-1">
+                ({formatShortCurrency(sumPotentialValue(bortfaltLeads))})
+              </span>
+            )}
+          </span>
         </div>
       </div>
       {/* Scrollable leads list */}

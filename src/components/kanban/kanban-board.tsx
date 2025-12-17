@@ -13,6 +13,7 @@ import {
 } from "@dnd-kit/core";
 import useSWR, { useSWRConfig } from "swr";
 import { Plus } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { NewLeadDialog } from "@/components/dialogs/new-lead-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -144,10 +145,12 @@ export function KanbanBoard() {
       if (!res.ok) {
         // Revert on error
         mutate("/api/leads");
+        toast.error("Kunne ikke oppdatere lead status");
       }
     } catch {
       // Revert on error
       mutate("/api/leads");
+      toast.error("Kunne ikke oppdatere lead status");
     }
   };
 

@@ -114,6 +114,8 @@ export function KanbanLeadCard({ lead, isDragOverlay = false }: KanbanLeadCardPr
       )}
       {...listeners}
       {...attributes}
+      aria-label={`Lead: ${lead.description.slice(0, 50)}${lead.description.length > 50 ? "…" : ""}`}
+      aria-roledescription="draggable lead card"
     >
       <Link
         href={`/leads/${lead.id}`}

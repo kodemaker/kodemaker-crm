@@ -94,7 +94,7 @@ export async function GET(req: NextRequest) {
               isNull(followups.completedAt)
             )
           )
-          .orderBy(asc(followups.dueAt))
+          .orderBy(asc(followups.dueAt), asc(followups.id))
       : [];
 
   // Map to get only the earliest followup per lead

@@ -2,16 +2,20 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import useSWR from "swr";
+import { useSession } from "next-auth/react";
 import { ActivityEventItem } from "@/components/hendelseslogg/activity-event-item";
 import { EventFiltersBar, type EventFilters } from "@/components/hendelseslogg/event-filters";
 import type { ApiActivityEvent, GetActivityEventsResponse } from "@/types/api";
 
 export function EventsClient() {
+  const { data: session } = useSession();
+  const currentUserId = session?.user?.id ? Number(session.user.id) : undefined;
+
   const [filters, setFilters] = useState<EventFilters>({
     types: [],
     companyId: undefined,
     contactId: undefined,
-    userId: undefined,
+    userFilter: "all",
     fromDate: undefined,
     toDate: undefined,
   });
@@ -28,8 +32,13 @@ export function EventsClient() {
     if (filters.contactId) {
       params.set("contactId", String(filters.contactId));
     }
-    if (filters.userId) {
-      params.set("userId", String(filters.userId));
+    // Handle user filter
+    if (filters.userFilter === "mine" && currentUserId) {
+      params.set("userId", String(currentUserId));
+    } else if (filters.userFilter === "excludeMine" && currentUserId) {
+      params.set("excludeUserId", String(currentUserId));
+    } else if (typeof filters.userFilter === "number") {
+      params.set("userId", String(filters.userFilter));
     }
     if (filters.fromDate) {
       params.set("fromDate", filters.fromDate.toISOString().split("T")[0]);
@@ -39,7 +48,7 @@ export function EventsClient() {
     }
     const qs = params.toString();
     return qs ? `?${qs}` : "";
-  }, [filters]);
+  }, [filters, currentUserId]);
 
   const { data, isLoading } = useSWR<GetActivityEventsResponse>(
     `/api/activity-events${queryString}`
@@ -73,7 +82,13 @@ export function EventsClient() {
           return false;
         }
         // Filter by user
-        if (filters.userId && e.actorUser?.id !== filters.userId) {
+        if (filters.userFilter === "mine" && currentUserId && e.actorUser?.id !== currentUserId) {
+          return false;
+        }
+        if (filters.userFilter === "excludeMine" && currentUserId && e.actorUser?.id === currentUserId) {
+          return false;
+        }
+        if (typeof filters.userFilter === "number" && e.actorUser?.id !== filters.userFilter) {
           return false;
         }
         // Date filters would need the full event data, which SSE provides raw
@@ -83,7 +98,7 @@ export function EventsClient() {
       .sort((a, b) => b.id - a.id);
 
     return arr;
-  }, [data, live, filters]);
+  }, [data, live, filters, currentUserId]);
 
   // Track max ID from initial data load
   useEffect(() => {

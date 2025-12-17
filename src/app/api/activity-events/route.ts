@@ -9,7 +9,7 @@ import {
   leads,
   users,
 } from "@/db/schema";
-import { and, desc, eq, gte, inArray, lt, SQL } from "drizzle-orm";
+import { and, desc, eq, gte, inArray, lt, ne, SQL } from "drizzle-orm";
 import { requireApiAuth } from "@/lib/require-api-auth";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
@@ -66,6 +66,14 @@ const queryParamsSchema = z.object({
       const num = Number(val);
       return isNaN(num) || num <= 0 ? undefined : num;
     }),
+  excludeUserId: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return undefined;
+      const num = Number(val);
+      return isNaN(num) || num <= 0 ? undefined : num;
+    }),
   fromDate: z.string().optional(),
   toDate: z.string().optional(),
 });
@@ -83,6 +91,7 @@ export async function GET(req: NextRequest) {
       companyId: searchParams.get("companyId") ?? undefined,
       contactId: searchParams.get("contactId") ?? undefined,
       userId: searchParams.get("userId") ?? undefined,
+      excludeUserId: searchParams.get("excludeUserId") ?? undefined,
       fromDate: searchParams.get("fromDate") ?? undefined,
       toDate: searchParams.get("toDate") ?? undefined,
     });
@@ -91,7 +100,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Invalid query parameters" }, { status: 400 });
     }
 
-    const { limit, before, type, companyId, contactId, userId, fromDate, toDate } = parsed.data;
+    const { limit, before, type, companyId, contactId, userId, excludeUserId, fromDate, toDate } = parsed.data;
 
     // Build filter conditions
     const conditions: SQL[] = [];
@@ -119,6 +128,11 @@ export async function GET(req: NextRequest) {
     // User filter (who performed the action)
     if (userId) {
       conditions.push(eq(activityEvents.actorUserId, userId));
+    }
+
+    // Exclude user filter (exclude events by a specific user)
+    if (excludeUserId) {
+      conditions.push(ne(activityEvents.actorUserId, excludeUserId));
     }
 
     // Date range filters

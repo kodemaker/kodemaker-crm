@@ -3,6 +3,8 @@
 import { useMemo, useState } from "react";
 import useSWR from "swr";
 import { Check, Filter, X } from "lucide-react";
+import { ClearFilterButton } from "@/components/filters/clear-filter-button";
+import { UserFilter, type UserFilterValue } from "@/components/filters/user-filter";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
@@ -17,40 +19,11 @@ import { DatePicker } from "@/components/ui/date-picker";
 import { cn } from "@/lib/utils";
 import type { ActivityEventType } from "@/types/api";
 
-// Shared clear button for filter dropdowns
-function ClearFilterButton({ onClear }: { onClear: () => void }) {
-  return (
-    <span
-      className="ml-1 inline-flex cursor-pointer hover:text-destructive"
-      role="button"
-      tabIndex={0}
-      onPointerDown={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-      }}
-      onClick={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onClear();
-      }}
-      onKeyDown={(e) => {
-        if (e.key === "Enter" || e.key === " ") {
-          e.preventDefault();
-          e.stopPropagation();
-          onClear();
-        }
-      }}
-    >
-      <X className="h-3 w-3" />
-    </span>
-  );
-}
-
 export type EventFilters = {
   types: ActivityEventType[];
   companyId?: number;
   contactId?: number;
-  userId?: number;
+  userFilter: UserFilterValue;
   fromDate?: Date;
   toDate?: Date;
 };
@@ -62,7 +35,6 @@ type EventFiltersProps = {
 
 type CompanyData = { id: number; name: string };
 type ContactData = { id: number; firstName: string; lastName: string };
-type UserData = { id: number; firstName: string; lastName: string };
 
 // Simplified type filter with 3 categories
 type FilterTypeOption = "comment" | "lead" | "email";
@@ -96,7 +68,7 @@ export function EventFiltersBar({ filters, onChange }: EventFiltersProps) {
     filters.types.length > 0 ||
     filters.companyId ||
     filters.contactId ||
-    filters.userId ||
+    filters.userFilter !== "all" ||
     filters.fromDate ||
     filters.toDate;
 
@@ -105,7 +77,7 @@ export function EventFiltersBar({ filters, onChange }: EventFiltersProps) {
       types: [],
       companyId: undefined,
       contactId: undefined,
-      userId: undefined,
+      userFilter: "all",
       fromDate: undefined,
       toDate: undefined,
     });
@@ -126,9 +98,13 @@ export function EventFiltersBar({ filters, onChange }: EventFiltersProps) {
         value={filters.contactId}
         onChange={(contactId) => onChange({ ...filters, contactId })}
       />
-      <UserFilterSimple
-        value={filters.userId}
-        onChange={(userId) => onChange({ ...filters, userId })}
+      <UserFilter
+        value={filters.userFilter}
+        onChange={(userFilter) => onChange({ ...filters, userFilter })}
+        defaultValue="all"
+        defaultLabel="Laget av"
+        labels={{ mine: "Meg", excludeMine: "Alle andre" }}
+        hideIcons
       />
       <div className="flex items-center gap-1">
         <DatePicker
@@ -360,82 +336,6 @@ function ContactFilter({
                     className={cn(
                       "ml-auto h-4 w-4",
                       value === contact.id ? "opacity-100" : "opacity-0"
-                    )}
-                  />
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </CommandList>
-        </Command>
-      </PopoverContent>
-    </Popover>
-  );
-}
-
-function UserFilterSimple({
-  value,
-  onChange,
-}: {
-  value?: number;
-  onChange: (value?: number) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-
-  const { data: users } = useSWR<UserData[]>("/api/users");
-
-  const filteredUsers = useMemo(() => {
-    if (!users) return [];
-    if (!query) return users;
-    const lowerQuery = query.toLowerCase();
-    return users.filter(
-      (u) =>
-        u.firstName.toLowerCase().includes(lowerQuery) ||
-        u.lastName.toLowerCase().includes(lowerQuery) ||
-        `${u.firstName} ${u.lastName}`.toLowerCase().includes(lowerQuery)
-    );
-  }, [users, query]);
-
-  const selectedUser = useMemo(() => {
-    if (!value || !users) return null;
-    return users.find((u) => u.id === value) ?? null;
-  }, [users, value]);
-
-  return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className={cn("h-8", value && "border-primary/50 bg-primary/5")}
-        >
-          {selectedUser ? `${selectedUser.firstName} ${selectedUser.lastName}` : "Bruker"}
-          {value && (
-            <ClearFilterButton onClear={() => { onChange(undefined); setOpen(false); }} />
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-[220px] p-0" align="start">
-        <Command>
-          <CommandInput placeholder="Søk bruker..." value={query} onValueChange={setQuery} />
-          <CommandList>
-            <CommandEmpty>Ingen treff</CommandEmpty>
-            <CommandGroup>
-              {filteredUsers.map((user) => (
-                <CommandItem
-                  key={user.id}
-                  value={`${user.firstName} ${user.lastName}`}
-                  onSelect={() => {
-                    onChange(user.id);
-                    setOpen(false);
-                    setQuery("");
-                  }}
-                >
-                  {user.firstName} {user.lastName}
-                  <Check
-                    className={cn(
-                      "ml-auto h-4 w-4",
-                      value === user.id ? "opacity-100" : "opacity-0"
                     )}
                   />
                 </CommandItem>

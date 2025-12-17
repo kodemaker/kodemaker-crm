@@ -3,6 +3,7 @@ import { EventsClient } from "./events-client";
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ApiActivityEvent, GetActivityEventsResponse } from "@/types/api";
+import { SessionProvider } from "next-auth/react";
 
 // Mock SWR to return different data based on the URL
 vi.mock("swr", () => ({
@@ -107,7 +108,11 @@ describe("EventsPage SSE highlight", () => {
     };
 
     try {
-      render(<EventsClient />);
+      render(
+        <SessionProvider session={null}>
+          <EventsClient />
+        </SessionProvider>
+      );
 
       // Initial items should render and not be highlighted
       expect(screen.getByText("Init two comment")).toBeDefined();

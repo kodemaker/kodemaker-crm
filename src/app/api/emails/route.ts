@@ -10,7 +10,7 @@ import {
   users,
 } from "@/db/schema";
 import { createActivityEventEmailReceived } from "@/db/activity-events";
-import { desc, eq, inArray } from "drizzle-orm";
+import { count, desc, eq, inArray } from "drizzle-orm";
 import { createHmac } from "crypto";
 import { parsePostmarkInboundEmail, postmarkInboundSchema } from "./parse-mail";
 import { z } from "zod";
@@ -49,6 +49,23 @@ const queryParamsSchema = z.object({
         .filter((id): id is number => id !== null);
       return ids.length > 0 ? ids : undefined;
     }),
+  // Pagination parameters
+  limit: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return 200; // Default for backward compatibility
+      const num = Number(val);
+      return isNaN(num) || num <= 0 ? 200 : Math.min(num, 200);
+    }),
+  page: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return 1;
+      const num = Number(val);
+      return isNaN(num) || num < 1 ? 1 : num;
+    }),
 });
 
 export async function GET(req: NextRequest) {
@@ -58,6 +75,8 @@ export async function GET(req: NextRequest) {
       contactId: searchParams.get("contactId") ?? undefined,
       companyId: searchParams.get("companyId") ?? undefined,
       contactIds: searchParams.get("contactIds") ?? undefined,
+      limit: searchParams.get("limit") ?? undefined,
+      page: searchParams.get("page") ?? undefined,
     });
 
     if (!parsed.success) {
@@ -69,7 +88,8 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { contactId, companyId, contactIds } = parsed.data;
+    const { contactId, companyId, contactIds, limit, page } = parsed.data;
+    const offset = (page - 1) * limit;
 
     // Require at least one valid scope parameter
     if (!contactId && !companyId && (!contactIds || contactIds.length === 0)) {
@@ -81,38 +101,47 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    let where = undefined;
-    if (contactId) {
-      where = eq(emails.recipientContactId, contactId);
-    } else if (companyId) {
-      where = eq(emails.recipientCompanyId, companyId);
-    } else if (contactIds && contactIds.length > 0) {
-      where = inArray(emails.recipientContactId, contactIds);
-    }
+    // Build scope condition
+    const scopeCondition = contactId
+      ? eq(emails.recipientContactId, contactId)
+      : companyId
+        ? eq(emails.recipientCompanyId, companyId)
+        : inArray(emails.recipientContactId, contactIds!);
 
-    const data = await db
-      .select({
-        id: emails.id,
-        subject: emails.subject,
-        content: emails.content,
-        createdAt: emails.createdAt,
-        sourceUser: {
-          firstName: users.firstName,
-          lastName: users.lastName,
-        },
-        recipientContact: {
-          firstName: contacts.firstName,
-          lastName: contacts.lastName,
-        },
-      })
-      .from(emails)
-      .leftJoin(users, eq(users.id, emails.sourceUserId))
-      .leftJoin(contacts, eq(contacts.id, emails.recipientContactId))
-      .where(where)
-      .orderBy(desc(emails.createdAt))
-      .limit(200);
+    const where = scopeCondition;
 
-    return NextResponse.json(data);
+    // Run count and data queries in parallel for efficiency
+    const [countResult, rows] = await Promise.all([
+      db.select({ count: count() }).from(emails).where(scopeCondition),
+      db
+        .select({
+          id: emails.id,
+          subject: emails.subject,
+          content: emails.content,
+          createdAt: emails.createdAt,
+          sourceUser: {
+            firstName: users.firstName,
+            lastName: users.lastName,
+          },
+          recipientContact: {
+            firstName: contacts.firstName,
+            lastName: contacts.lastName,
+          },
+        })
+        .from(emails)
+        .leftJoin(users, eq(users.id, emails.sourceUserId))
+        .leftJoin(contacts, eq(contacts.id, emails.recipientContactId))
+        .where(where)
+        .orderBy(desc(emails.createdAt), desc(emails.id))
+        .offset(offset)
+        .limit(limit),
+    ]);
+
+    const totalCount = countResult[0]?.count ?? 0;
+    const hasMore = offset + rows.length < totalCount;
+    const items = rows;
+
+    return NextResponse.json({ items, hasMore, totalCount });
   } catch (error) {
     logger.error({ route: "/api/emails", method: "GET", error }, "Error fetching emails");
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

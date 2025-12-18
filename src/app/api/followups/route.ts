@@ -3,7 +3,7 @@ import { db } from "@/db/client";
 import { companies, contactCompanyHistory, contacts, followups, leads, users } from "@/db/schema";
 import { z } from "zod";
 import { requireApiAuth } from "@/lib/require-api-auth";
-import { and, asc, desc, eq, inArray, isNotNull, isNull, ne } from "drizzle-orm";
+import { and, asc, count, desc, eq, inArray, isNotNull, isNull, ne } from "drizzle-orm";
 import { logger } from "@/lib/logger";
 import { authOptions } from "../auth/[...nextauth]/route";
 import { getServerSession } from "next-auth";
@@ -63,6 +63,23 @@ const queryParamsSchema = z.object({
       const num = Number(val);
       return isNaN(num) || num <= 0 ? undefined : num;
     }),
+  // Pagination parameters
+  limit: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return 200; // Default for backward compatibility
+      const num = Number(val);
+      return isNaN(num) || num <= 0 ? 200 : Math.min(num, 200);
+    }),
+  page: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return 1;
+      const num = Number(val);
+      return isNaN(num) || num < 1 ? 1 : num;
+    }),
 });
 
 export async function GET(req: NextRequest) {
@@ -81,6 +98,8 @@ export async function GET(req: NextRequest) {
       companyId: searchParams.get("companyId") ?? undefined,
       leadId: searchParams.get("leadId") ?? undefined,
       userId: searchParams.get("userId") ?? undefined,
+      limit: searchParams.get("limit") ?? undefined,
+      page: searchParams.get("page") ?? undefined,
     });
 
     if (!parsed.success) {
@@ -100,7 +119,11 @@ export async function GET(req: NextRequest) {
       companyId,
       leadId,
       userId: filterUserId,
+      limit,
+      page,
     } = parsed.data;
+
+    const offset = (page - 1) * limit;
 
     const baseCondition = completed
       ? isNotNull(followups.completedAt)
@@ -126,39 +149,49 @@ export async function GET(req: NextRequest) {
           ? undefined
           : eq(followups.assignedToUserId, userId!);
 
+    // Build where clause from conditions
     const where = and(baseCondition, scope, userFilter);
 
-    const rows = await db
-      .select({
-        id: followups.id,
-        note: followups.note,
-        dueAt: followups.dueAt,
-        completedAt: followups.completedAt,
-        createdAt: followups.createdAt,
-        createdBy: { firstName: users.firstName, lastName: users.lastName },
-        assignedToUserId: followups.assignedToUserId,
-        companyId: followups.companyId,
-        contactId: followups.contactId,
-        leadId: followups.leadId,
-      })
-      .from(followups)
-      .leftJoin(users, eq(users.id, followups.createdByUserId))
-      .where(where)
-      .orderBy(completed ? desc(followups.completedAt) : asc(followups.dueAt), asc(followups.id))
-      .limit(200);
+    // Run count and data queries in parallel for efficiency
+    const [countResult, rows] = await Promise.all([
+      db.select({ count: count() }).from(followups).where(where),
+      db
+        .select({
+          id: followups.id,
+          note: followups.note,
+          dueAt: followups.dueAt,
+          completedAt: followups.completedAt,
+          createdAt: followups.createdAt,
+          createdBy: { firstName: users.firstName, lastName: users.lastName },
+          assignedToUserId: followups.assignedToUserId,
+          companyId: followups.companyId,
+          contactId: followups.contactId,
+          leadId: followups.leadId,
+        })
+        .from(followups)
+        .leftJoin(users, eq(users.id, followups.createdByUserId))
+        .where(where)
+        .orderBy(completed ? desc(followups.completedAt) : asc(followups.dueAt), asc(followups.id))
+        .offset(offset)
+        .limit(limit),
+    ]);
+
+    const totalCount = countResult[0]?.count ?? 0;
+    const hasMore = offset + rows.length < totalCount;
+    const paginatedRows = rows;
 
     // Collect company, contact, and lead IDs directly from followups
     const companyIds = new Set<number>();
     const contactIds = new Set<number>();
     const leadIds = new Set<number>();
-    for (const r of rows) {
+    for (const r of paginatedRows) {
       if (r.companyId) companyIds.add(r.companyId);
       if (r.contactId) contactIds.add(r.contactId);
       if (r.leadId) leadIds.add(r.leadId);
     }
 
     const assignedToUserIds = Array.from(
-      new Set(rows.map((r) => r.assignedToUserId).filter(Boolean))
+      new Set(paginatedRows.map((r) => r.assignedToUserId).filter(Boolean))
     ) as number[];
     let assignedToUsersById: Record<number, { id: number; firstName: string; lastName: string }> =
       {};
@@ -219,7 +252,7 @@ export async function GET(req: NextRequest) {
 
     // Fetch contact-company endDate relationships for "sluttet" status
     const contactCompanyPairs: Array<{ contactId: number; companyId: number }> = [];
-    for (const r of rows) {
+    for (const r of paginatedRows) {
       if (r.contactId && r.companyId) {
         contactCompanyPairs.push({
           contactId: r.contactId,
@@ -279,7 +312,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const data = rows.map((r) => {
+    const items = paginatedRows.map((r) => {
       let contactEndDate: string | null = null;
       if (r.contactId && r.companyId) {
         const key = `${r.contactId}-${r.companyId}`;
@@ -300,7 +333,7 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    return NextResponse.json(data);
+    return NextResponse.json({ items, hasMore, totalCount });
   } catch (error) {
     logger.error({ route: "/api/followups", method: "GET", error }, "Error fetching followups");
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

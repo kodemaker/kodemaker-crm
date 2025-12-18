@@ -9,7 +9,7 @@ import {
   leads,
   users,
 } from "@/db/schema";
-import { and, desc, eq, gte, inArray, lt, ne, SQL } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, lt, ne, SQL } from "drizzle-orm";
 import { requireApiAuth } from "@/lib/require-api-auth";
 import { z } from "zod";
 import { logger } from "@/lib/logger";
@@ -24,13 +24,13 @@ const queryParamsSchema = z.object({
       const num = Number(val);
       return isNaN(num) || num <= 0 ? 50 : Math.min(num, 200);
     }),
-  before: z
+  page: z
     .string()
     .optional()
     .transform((val) => {
-      if (!val) return undefined;
+      if (!val) return 1;
       const num = Number(val);
-      return isNaN(num) || num <= 0 ? undefined : num;
+      return isNaN(num) || num < 1 ? 1 : num;
     }),
   type: z
     .string()
@@ -86,7 +86,7 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const parsed = queryParamsSchema.safeParse({
       limit: searchParams.get("limit") ?? undefined,
-      before: searchParams.get("before") ?? undefined,
+      page: searchParams.get("page") ?? undefined,
       type: searchParams.get("type") ?? undefined,
       companyId: searchParams.get("companyId") ?? undefined,
       contactId: searchParams.get("contactId") ?? undefined,
@@ -100,15 +100,11 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Invalid query parameters" }, { status: 400 });
     }
 
-    const { limit, before, type, companyId, contactId, userId, excludeUserId, fromDate, toDate } = parsed.data;
+    const { limit, page, type, companyId, contactId, userId, excludeUserId, fromDate, toDate } = parsed.data;
+    const offset = (page - 1) * limit;
 
     // Build filter conditions
     const conditions: SQL[] = [];
-
-    // Cursor pagination
-    if (before) {
-      conditions.push(lt(activityEvents.id, before));
-    }
 
     // Event type filter
     if (type && type.length > 0) {
@@ -151,35 +147,42 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // Query activity events with all related data
-    const rows = await db
-      .select({
-        id: activityEvents.id,
-        eventType: activityEvents.eventType,
-        createdAt: activityEvents.createdAt,
-        oldStatus: activityEvents.oldStatus,
-        newStatus: activityEvents.newStatus,
-        // Actor user
-        actorUser: {
-          id: users.id,
-          firstName: users.firstName,
-          lastName: users.lastName,
-        },
-        // Related entities for context
-        companyId: activityEvents.companyId,
-        contactId: activityEvents.contactId,
-        leadId: activityEvents.leadId,
-        commentId: activityEvents.commentId,
-        emailId: activityEvents.emailId,
-      })
-      .from(activityEvents)
-      .leftJoin(users, eq(activityEvents.actorUserId, users.id))
-      .where(conditions.length > 0 ? and(...conditions) : undefined)
-      .orderBy(desc(activityEvents.id))
-      .limit(limit + 1); // Fetch one extra to determine hasMore
+    // Query activity events with all related data and count in parallel
+    const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-    const hasMore = rows.length > limit;
-    const events = hasMore ? rows.slice(0, limit) : rows;
+    const [countResult, rows] = await Promise.all([
+      db.select({ count: count() }).from(activityEvents).where(where),
+      db
+        .select({
+          id: activityEvents.id,
+          eventType: activityEvents.eventType,
+          createdAt: activityEvents.createdAt,
+          oldStatus: activityEvents.oldStatus,
+          newStatus: activityEvents.newStatus,
+          // Actor user
+          actorUser: {
+            id: users.id,
+            firstName: users.firstName,
+            lastName: users.lastName,
+          },
+          // Related entities for context
+          companyId: activityEvents.companyId,
+          contactId: activityEvents.contactId,
+          leadId: activityEvents.leadId,
+          commentId: activityEvents.commentId,
+          emailId: activityEvents.emailId,
+        })
+        .from(activityEvents)
+        .leftJoin(users, eq(activityEvents.actorUserId, users.id))
+        .where(where)
+        .orderBy(desc(activityEvents.id))
+        .offset(offset)
+        .limit(limit),
+    ]);
+
+    const totalCount = countResult[0]?.count ?? 0;
+    const hasMore = offset + rows.length < totalCount;
+    const events = rows;
 
     // Collect IDs for batch fetching related data
     const commentIds = new Set<number>();
@@ -293,8 +296,9 @@ export async function GET(req: NextRequest) {
     });
 
     return NextResponse.json({
-      events: data,
+      items: data,
       hasMore,
+      totalCount,
     });
   } catch (error) {
     logger.error(

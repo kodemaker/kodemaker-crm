@@ -64,14 +64,25 @@ function createRequest(params: Record<string, string> = {}): NextRequest {
   return { url: url.toString() } as NextRequest;
 }
 
-function setupDbMock(events: any[] = []) {
-  // Mock for main events query
+function setupDbMock(events: any[] = [], totalCount?: number) {
+  const count = totalCount ?? events.length;
+
+  // Mock for count query (first in Promise.all)
+  const countQueryMock = vi.fn().mockReturnValue({
+    from: vi.fn().mockReturnValue({
+      where: vi.fn().mockResolvedValue([{ count }]),
+    }),
+  });
+
+  // Mock for main events query (second in Promise.all)
   const mainQueryMock = vi.fn().mockReturnValue({
     from: vi.fn().mockReturnValue({
       leftJoin: vi.fn().mockReturnValue({
         where: vi.fn().mockReturnValue({
           orderBy: vi.fn().mockReturnValue({
-            limit: vi.fn().mockResolvedValue(events),
+            offset: vi.fn().mockReturnValue({
+              limit: vi.fn().mockResolvedValue(events),
+            }),
           }),
         }),
       }),
@@ -86,6 +97,7 @@ function setupDbMock(events: any[] = []) {
   });
 
   db.select
+    .mockImplementationOnce(countQueryMock)
     .mockImplementationOnce(mainQueryMock)
     .mockImplementation(relatedQueryMock);
 }
@@ -142,7 +154,7 @@ describe("GET /api/activity-events", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.events).toHaveLength(2);
+    expect(data.items).toHaveLength(2);
     expect(data.hasMore).toBe(false);
   });
 
@@ -170,7 +182,7 @@ describe("GET /api/activity-events", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.events).toHaveLength(1);
+    expect(data.items).toHaveLength(1);
     expect(db.select).toHaveBeenCalled();
   });
 
@@ -198,7 +210,7 @@ describe("GET /api/activity-events", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.events).toHaveLength(1);
+    expect(data.items).toHaveLength(1);
   });
 
   it("filters by eventType", async () => {
@@ -225,8 +237,8 @@ describe("GET /api/activity-events", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.events).toHaveLength(1);
-    expect(data.events[0].eventType).toBe("lead_status_changed");
+    expect(data.items).toHaveLength(1);
+    expect(data.items[0].eventType).toBe("lead_status_changed");
   });
 
   it("filters by multiple eventTypes", async () => {
@@ -266,7 +278,7 @@ describe("GET /api/activity-events", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.events).toHaveLength(2);
+    expect(data.items).toHaveLength(2);
   });
 
   it("filters by userId (actor)", async () => {
@@ -293,10 +305,10 @@ describe("GET /api/activity-events", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.events).toHaveLength(1);
+    expect(data.items).toHaveLength(1);
   });
 
-  it("supports cursor pagination with before parameter", async () => {
+  it("supports page-based pagination", async () => {
     const mockEvents = [
       {
         id: 5,
@@ -313,22 +325,21 @@ describe("GET /api/activity-events", () => {
       },
     ];
 
-    setupDbMock(mockEvents);
+    setupDbMock(mockEvents, 100); // 100 total events
 
-    const req = createRequest({ before: "10" });
+    const req = createRequest({ page: "2", limit: "10" });
     const response = await GET(req);
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.events).toHaveLength(1);
-    // All returned events should have id < 10
-    expect(data.events[0].id).toBeLessThan(10);
+    expect(data.items).toHaveLength(1);
+    expect(data.totalCount).toBe(100);
   });
 
   it("indicates hasMore when more results exist", async () => {
-    // Return limit + 1 events to trigger hasMore
-    const mockEvents = Array.from({ length: 51 }, (_, i) => ({
-      id: 51 - i,
+    // Return 50 events but report totalCount as 100 to trigger hasMore
+    const mockEvents = Array.from({ length: 50 }, (_, i) => ({
+      id: 50 - i,
       eventType: "comment_created",
       createdAt: new Date("2025-01-01T12:00:00Z"),
       oldStatus: null,
@@ -341,14 +352,14 @@ describe("GET /api/activity-events", () => {
       emailId: null,
     }));
 
-    setupDbMock(mockEvents);
+    setupDbMock(mockEvents, 100); // totalCount = 100, so hasMore = true
 
     const req = createRequest({ limit: "50" });
     const response = await GET(req);
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.events).toHaveLength(50);
+    expect(data.items).toHaveLength(50);
     expect(data.hasMore).toBe(true);
   });
 
@@ -408,7 +419,7 @@ describe("GET /api/activity-events", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.events).toHaveLength(1);
+    expect(data.items).toHaveLength(1);
   });
 
   it("handles database errors gracefully", async () => {
@@ -432,7 +443,7 @@ describe("GET /api/activity-events", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.events).toEqual([]);
+    expect(data.items).toEqual([]);
     expect(data.hasMore).toBe(false);
   });
 
@@ -453,13 +464,22 @@ describe("GET /api/activity-events", () => {
       },
     ];
 
+    // Setup count query
+    db.select.mockReturnValueOnce({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockResolvedValue([{ count: 1 }]),
+      }),
+    });
+
     // Setup main query
     db.select.mockReturnValueOnce({
       from: vi.fn().mockReturnValue({
         leftJoin: vi.fn().mockReturnValue({
           where: vi.fn().mockReturnValue({
             orderBy: vi.fn().mockReturnValue({
-              limit: vi.fn().mockResolvedValue(mockEvents),
+              offset: vi.fn().mockReturnValue({
+                limit: vi.fn().mockResolvedValue(mockEvents),
+              }),
             }),
           }),
         }),
@@ -489,11 +509,11 @@ describe("GET /api/activity-events", () => {
         where: vi.fn().mockImplementation(() => {
           // Return appropriate data based on call count
           const callCount = db.select.mock.calls.length;
-          if (callCount === 3) return Promise.resolve([]); // leads
-          if (callCount === 4) return Promise.resolve([]); // emails
-          if (callCount === 5)
-            return Promise.resolve([{ id: 5, name: "Test Company" }]); // companies
+          if (callCount === 4) return Promise.resolve([]); // leads
+          if (callCount === 5) return Promise.resolve([]); // emails
           if (callCount === 6)
+            return Promise.resolve([{ id: 5, name: "Test Company" }]); // companies
+          if (callCount === 7)
             return Promise.resolve([{ id: 3, firstName: "John", lastName: "Doe" }]); // contacts
           return Promise.resolve([]);
         }),
@@ -508,7 +528,7 @@ describe("GET /api/activity-events", () => {
     const data = await response.json();
 
     expect(response.status).toBe(200);
-    expect(data.events[0].comment).toMatchObject({
+    expect(data.items[0].comment).toMatchObject({
       id: 10,
       content: "Test comment",
       companyId: 5,
@@ -516,7 +536,7 @@ describe("GET /api/activity-events", () => {
       leadId: null,
     });
     // Note: Due to Promise.all execution order in mocks, we just verify the structure
-    expect(data.events[0]).toHaveProperty("company");
-    expect(data.events[0]).toHaveProperty("contact");
+    expect(data.items[0]).toHaveProperty("company");
+    expect(data.items[0]).toHaveProperty("contact");
   });
 });

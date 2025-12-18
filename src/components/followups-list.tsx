@@ -1,12 +1,16 @@
 "use client";
 import { useState } from "react";
-import useSWR, { useSWRConfig } from "swr";
+import { useSWRConfig } from "swr";
 import { FollowupItem as FollowupItemComponent } from "@/components/activity-log/followup-item";
 import type { FollowupItemData } from "@/components/activity-log/followup-item";
 import { EditFollowupDialog } from "@/components/dialogs/edit-followup-dialog";
+import { SimplePagination } from "@/components/pagination/simple-pagination";
+import { usePagination } from "@/hooks/use-pagination";
 
 // Export type for backward compatibility
 export type FollowupItem = FollowupItemData;
+
+const FOLLOWUPS_PAGE_LIMIT = 5;
 
 export function FollowupsList({
   endpoint,
@@ -17,12 +21,20 @@ export function FollowupsList({
   onCompleted?: () => void;
   variant?: "action" | "completed";
 }) {
-  const { data, mutate } = useSWR<FollowupItemData[]>(endpoint);
+  const {
+    items: data,
+    currentPage,
+    totalPages,
+    isLoading,
+    setPage,
+    mutate,
+  } = usePagination<FollowupItemData>(endpoint, FOLLOWUPS_PAGE_LIMIT);
   const { mutate: globalMutate } = useSWRConfig();
   const [selectedFollowup, setSelectedFollowup] = useState<FollowupItemData | null>(null);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
 
-  if (!data) {
+  // Only show loading on initial load, not during pagination (keepPreviousData keeps old data visible)
+  if (isLoading && data.length === 0) {
     return <div className="p-3 text-sm text-muted-foreground">Laster…</div>;
   }
 
@@ -67,6 +79,15 @@ export function FollowupsList({
           <div className="p-3 text-sm text-muted-foreground">Ingen</div>
         )}
       </div>
+      {data.length > 0 && totalPages > 1 && (
+        <SimplePagination
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={setPage}
+          isLoading={isLoading}
+          variant="compact"
+        />
+      )}
       <EditFollowupDialog
         followup={selectedFollowup}
         open={editDialogOpen}

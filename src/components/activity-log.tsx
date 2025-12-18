@@ -1,6 +1,6 @@
 "use client";
 import { useMemo, useRef, useState } from "react";
-import useSWR, { useSWRConfig } from "swr";
+import useSWR from "swr";
 import { ChevronsUpDown } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -18,7 +18,9 @@ import { EmailItem } from "@/components/activity-log/email-item";
 import { CommentItem } from "@/components/activity-log/comment-item";
 import { FollowupItem } from "@/components/activity-log/followup-item";
 import { LeadSelector } from "@/components/activity-log/lead-selector";
-import type { ApiEmail, LeadStatus } from "@/types/api";
+import { SimplePagination } from "@/components/pagination/simple-pagination";
+import { usePagination } from "@/hooks/use-pagination";
+import type { ApiRecentActivity, LeadStatus } from "@/types/api";
 import { EditFollowupDialog } from "@/components/dialogs/edit-followup-dialog";
 import { EditCommentDialog } from "@/components/dialogs/edit-comment-dialog";
 import type { FollowupItemData } from "@/components/activity-log/followup-item";
@@ -51,18 +53,16 @@ type CommentItem = {
   contactEndDate?: string | null;
 };
 
-type ActivityItem =
-  | { type: "followup"; data: FollowupItemType }
-  | { type: "comment"; data: CommentItem }
-  | { type: "email"; data: ApiEmail };
-
 type ActivityLogProps = {
   leadId?: number;
   contactId?: number;
   companyId?: number;
   contactIds?: number[];
-  initialEmails?: ApiEmail[];
 };
+
+// Pagination limits as per requirements
+const OPEN_FOLLOWUPS_LIMIT = 3;
+const RECENT_ACTIVITIES_LIMIT = 7;
 
 type User = {
   id: number;
@@ -90,24 +90,18 @@ function buildQueryParams(
         ? `companyId=${companyId}&all=1`
         : "all=1";
 
-  const commentParams = leadId
+  // Build recent activities endpoint params
+  const recentActivitiesParams = leadId
     ? `leadId=${leadId}`
     : contactId
       ? `contactId=${contactId}`
       : companyId
         ? `companyId=${companyId}`
-        : null;
+        : contactIds && contactIds.length > 0
+          ? `contactIds=${contactIds.join(",")}`
+          : null;
 
-  // emailParams unchanged - leads don't have direct emails
-  const emailParams = contactId
-    ? `contactId=${contactId}`
-    : companyId
-      ? `companyId=${companyId}`
-      : contactIds && contactIds.length > 0
-        ? `contactIds=${contactIds.join(",")}`
-        : null;
-
-  return { followupParams, commentParams, emailParams };
+  return { followupParams, recentActivitiesParams };
 }
 
 export function ActivityLog({
@@ -115,7 +109,6 @@ export function ActivityLog({
   contactId,
   companyId,
   contactIds,
-  initialEmails = [],
 }: ActivityLogProps) {
   const [activeTab, setActiveTab] = useState<"followup" | "comment">("followup");
   const [newComment, setNewComment] = useState("");
@@ -131,31 +124,42 @@ export function ActivityLog({
   const [editCommentOpen, setEditCommentOpen] = useState(false);
   const [selectedFollowup, setSelectedFollowup] = useState<FollowupItemData | null>(null);
   const [selectedComment, setSelectedComment] = useState<CommentItem | null>(null);
-  const { mutate: globalMutate } = useSWRConfig();
   const hasSetDefaultUser = useRef(false);
 
-  const { followupParams, commentParams, emailParams } = buildQueryParams(
+  const { followupParams, recentActivitiesParams } = buildQueryParams(
     leadId,
     contactId,
     companyId,
     contactIds
   );
 
-  const { data: openFollowups, mutate: mutateOpenFollowups } = useSWR<FollowupItemType[]>(
-    `/api/followups?${followupParams}`
+  // "Krever handling" section - paginated open followups (limit 3)
+  const {
+    items: openFollowups,
+    currentPage: openFollowupsPage,
+    totalPages: openFollowupsTotalPages,
+    isLoading: isLoadingOpenFollowups,
+    setPage: setOpenFollowupsPage,
+    mutate: mutateOpenFollowups,
+  } = usePagination<FollowupItemType>(
+    `/api/followups?${followupParams}`,
+    OPEN_FOLLOWUPS_LIMIT
   );
 
-  const { data: completedFollowups, mutate: mutateCompletedFollowups } = useSWR<FollowupItemType[]>(
-    `/api/followups?${followupParams}&completed=1`
-  );
-
-  const { data: comments, mutate: mutateComments } = useSWR<CommentItem[]>(
-    commentParams ? `/api/comments?${commentParams}` : null
-  );
-
-  const { data: fetchedEmails, mutate: mutateEmails } = useSWR<ApiEmail[]>(
-    emailParams ? `/api/emails?${emailParams}` : null,
-    { fallbackData: initialEmails }
+  // "Siste nytt" section - unified recent activities endpoint
+  // TODO: List doesn't update when an item is deleted until page change.
+  // Fix: Add mutateRecentActivities() call in EditCommentDialog and EditFollowupDialog
+  // onDelete callbacks, similar to how completeFollowup already calls mutateRecentActivities().
+  const {
+    items: recentActivities,
+    currentPage: recentActivitiesPage,
+    totalPages: recentActivitiesTotalPages,
+    isLoading: isLoadingRecentActivities,
+    setPage: setRecentActivitiesPage,
+    mutate: mutateRecentActivities,
+  } = usePagination<ApiRecentActivity>(
+    recentActivitiesParams ? `/api/recent-activities?${recentActivitiesParams}` : null,
+    RECENT_ACTIVITIES_LIMIT
   );
 
   const { data: users } = useSWR<User[]>(`/api/users`);
@@ -170,8 +174,6 @@ export function ActivityLog({
         ? `/api/leads?companyId=${companyId}`
         : null;
   const { data: leads } = useSWR<Lead[]>(leadsEndpoint);
-
-  const emails = fetchedEmails ?? initialEmails;
 
   // Pre-select current user
   useEffect(() => {
@@ -200,13 +202,7 @@ export function ActivityLog({
     if (res.ok) {
       setNewComment("");
       setSelectedLead(null);
-      if (commentParams) {
-        await mutateComments(undefined, { revalidate: true });
-        await globalMutate(`/api/comments?${commentParams}`);
-      }
-      if (emailParams) {
-        await mutateEmails(undefined, { revalidate: true });
-      }
+      await mutateRecentActivities();
     }
   }
 
@@ -230,11 +226,7 @@ export function ActivityLog({
       setNewFollowupDue(getDefaultDueDate());
       setSelectedUser(null);
       setSelectedLead(null);
-      await mutateOpenFollowups(undefined, { revalidate: true });
-      await globalMutate(`/api/followups?${followupParams}`);
-      if (emailParams) {
-        await mutateEmails(undefined, { revalidate: true });
-      }
+      await mutateOpenFollowups();
     }
   }
 
@@ -245,53 +237,10 @@ export function ActivityLog({
       body: JSON.stringify({ completedAt: new Date().toISOString() }),
     });
     if (res.ok) {
-      await mutateOpenFollowups(undefined, { revalidate: true });
-      await mutateCompletedFollowups(undefined, { revalidate: true });
-      await globalMutate(`/api/followups?${followupParams}`);
-      await globalMutate(`/api/followups?${followupParams}&completed=1`);
-      if (emailParams) {
-        await mutateEmails(undefined, { revalidate: true });
-      }
+      await mutateOpenFollowups();
+      await mutateRecentActivities();
     }
   }
-
-  const recentActivities = useMemo(() => {
-    const items: ActivityItem[] = [];
-
-    if (Array.isArray(completedFollowups)) {
-      for (const f of completedFollowups) {
-        items.push({ type: "followup", data: f });
-      }
-    }
-
-    if (Array.isArray(comments)) {
-      for (const c of comments) {
-        items.push({ type: "comment", data: c });
-      }
-    }
-
-    if (Array.isArray(emails)) {
-      for (const e of emails) {
-        items.push({ type: "email", data: e });
-      }
-    }
-
-    return items.sort((a, b) => {
-      const dateA =
-        a.type === "followup"
-          ? a.data.completedAt || a.data.createdAt
-          : a.type === "comment"
-            ? a.data.createdAt
-            : a.data.createdAt;
-      const dateB =
-        b.type === "followup"
-          ? b.data.completedAt || b.data.createdAt
-          : b.type === "comment"
-            ? b.data.createdAt
-            : b.data.createdAt;
-      return new Date(dateB).getTime() - new Date(dateA).getTime();
-    });
-  }, [completedFollowups, comments, emails]);
 
   const filteredUsers = useMemo(() => {
     if (!users || !userQuery) return users ?? [];
@@ -446,77 +395,129 @@ export function ActivityLog({
       <div className="mt-6 space-y-6">
         <div className="bg-background rounded p-4">
           <h3 className="text-sm font-medium mb-2">Krever handling:</h3>
-          {openFollowups === undefined ? (
+          {isLoadingOpenFollowups && openFollowups.length === 0 ? (
             <div className="p-3 text-sm text-muted-foreground">Laster…</div>
-          ) : !Array.isArray(openFollowups) || openFollowups.length === 0 ? (
+          ) : openFollowups.length === 0 ? (
             <div className="border rounded p-3 text-sm text-muted-foreground">Ingen</div>
           ) : (
-            <div className="border rounded divide-y">
-              {openFollowups.map((f) => (
-                <FollowupItem
-                  key={f.id}
-                  followup={f}
-                  variant="action"
-                  onComplete={completeFollowup}
-                  onClick={() => {
-                    setSelectedFollowup(f);
-                    setEditFollowupOpen(true);
-                  }}
-                />
-              ))}
-            </div>
+            <>
+              <div className="border rounded divide-y">
+                {openFollowups.map((f) => (
+                  <FollowupItem
+                    key={f.id}
+                    followup={f}
+                    variant="action"
+                    onComplete={completeFollowup}
+                    onClick={() => {
+                      setSelectedFollowup(f);
+                      setEditFollowupOpen(true);
+                    }}
+                  />
+                ))}
+              </div>
+              <SimplePagination
+                currentPage={openFollowupsPage}
+                totalPages={openFollowupsTotalPages}
+                onPageChange={setOpenFollowupsPage}
+                variant="compact"
+              />
+            </>
           )}
         </div>
 
         <div className="bg-background rounded p-4">
           <h3 className="text-sm font-medium mb-2">Siste nytt:</h3>
-          {recentActivities.length === 0 ? (
+          {isLoadingRecentActivities && recentActivities.length === 0 ? (
+            <div className="p-3 text-sm text-muted-foreground">Laster...</div>
+          ) : recentActivities.length === 0 ? (
             <div className="border rounded p-3 text-sm text-muted-foreground">Ingen</div>
           ) : (
-            <div className="border rounded divide-y">
-              {recentActivities.map((item) => {
-                if (item.type === "comment") {
-                  return (
-                    <CommentItem
-                      key={`comment-${item.data.id}`}
-                      id={item.data.id}
-                      content={item.data.content}
-                      createdAt={item.data.createdAt}
-                      createdBy={item.data.createdBy}
-                      company={item.data.company}
-                      contact={item.data.contact}
-                      lead={item.data.lead}
-                      contactEndDate={item.data.contactEndDate}
-                      showTime={false}
-                      onClick={() => {
-                        setSelectedComment(item.data);
-                        setEditCommentOpen(true);
-                      }}
-                    />
-                  );
-                }
+            <>
+              <div className="border rounded divide-y">
+                {recentActivities.map((item) => {
+                  if (item.type === "comment" && item.comment) {
+                    return (
+                      <CommentItem
+                        key={item.id}
+                        id={item.comment.id}
+                        content={item.comment.content}
+                        createdAt={item.createdAt}
+                        createdBy={item.createdBy}
+                        company={item.company}
+                        contact={item.contact}
+                        lead={item.lead}
+                        contactEndDate={item.contactEndDate}
+                        showTime={false}
+                        onClick={() => {
+                          setSelectedComment({
+                            id: item.comment!.id,
+                            content: item.comment!.content,
+                            createdAt: item.createdAt,
+                            createdBy: item.createdBy,
+                            company: item.company,
+                            contact: item.contact,
+                            lead: item.lead,
+                            contactEndDate: item.contactEndDate,
+                          });
+                          setEditCommentOpen(true);
+                        }}
+                      />
+                    );
+                  }
 
-                if (item.type === "followup") {
-                  return (
-                    <FollowupItem
-                      key={`followup-${item.data.id}`}
-                      followup={item.data}
-                      variant="completed"
-                      onClick={() => {
-                        setSelectedFollowup(item.data);
-                        setEditFollowupOpen(true);
-                      }}
-                    />
-                  );
-                }
+                  if (item.type === "followup" && item.followup) {
+                    const followupData: FollowupItemType = {
+                      id: item.followup.id,
+                      note: item.followup.note,
+                      dueAt: item.followup.dueAt,
+                      completedAt: item.followup.completedAt,
+                      createdAt: item.createdAt,
+                      createdBy: item.createdBy,
+                      assignedTo: item.followup.assignedTo,
+                      company: item.company,
+                      contact: item.contact,
+                      lead: item.lead,
+                      contactEndDate: item.contactEndDate,
+                    };
+                    return (
+                      <FollowupItem
+                        key={item.id}
+                        followup={followupData}
+                        variant="completed"
+                        onClick={() => {
+                          setSelectedFollowup(followupData);
+                          setEditFollowupOpen(true);
+                        }}
+                      />
+                    );
+                  }
 
-                if (item.type === "email") {
-                  return <EmailItem key={`email-${item.data.id}`} email={item.data} />;
-                }
+                  if (item.type === "email" && item.email) {
+                    return (
+                      <EmailItem
+                        key={item.id}
+                        email={{
+                          id: item.email.id,
+                          subject: item.email.subject,
+                          content: item.email.content,
+                          createdAt: item.createdAt,
+                          sourceUser: item.createdBy,
+                          recipientContact: item.contact,
+                        }}
+                      />
+                    );
+                  }
 
-                return null;
-              })}
-            </div>
+                  return null;
+                })}
+              </div>
+              <SimplePagination
+                currentPage={recentActivitiesPage}
+                totalPages={recentActivitiesTotalPages}
+                onPageChange={setRecentActivitiesPage}
+                variant="compact"
+              />
+            </>
           )}
         </div>
       </div>

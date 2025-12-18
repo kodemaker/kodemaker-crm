@@ -16,7 +16,7 @@ export function ContactDetailClient() {
   const { data } = useSWR<GetContactDetailResponse>(id ? `/api/contacts/${id}` : null);
 
   if (!data) return <div className="p-4 md:p-6">Laster...</div>;
-  const { contact, currentCompany, previousCompanies, leads, emails, contactEmails } = data;
+  const { contact, currentCompany, previousCompanies, leads, contactEmails } = data;
 
   const crumbs = [
     { label: "Organisasjoner", href: "/customers" },
@@ -53,7 +53,7 @@ export function ContactDetailClient() {
         }
       />
 
-      <ActivityLog contactId={contact.id} companyId={currentCompany?.id} initialEmails={emails} />
+      <ActivityLog contactId={contact.id} companyId={currentCompany?.id} />
 
       <ContactCompaniesSection previousCompanies={previousCompanies} />
 

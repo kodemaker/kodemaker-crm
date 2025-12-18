@@ -1,11 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import useSWR from "swr";
 import { useSession } from "next-auth/react";
 import { ActivityEventItem } from "@/components/hendelseslogg/activity-event-item";
 import { EventFiltersBar, type EventFilters } from "@/components/filters/event-filters";
-import type { ApiActivityEvent, GetActivityEventsResponse } from "@/types/api";
+import { SimplePagination } from "@/components/pagination/simple-pagination";
+import { usePagination } from "@/hooks/use-pagination";
+import type { ApiActivityEvent } from "@/types/api";
+
+const EVENTS_LIMIT = 10;
 
 export function EventsClient() {
   const { data: session } = useSession();
@@ -20,7 +23,7 @@ export function EventsClient() {
     toDate: undefined,
   });
 
-  // Build query string from filters
+  // Build query string from filters (without pagination params - hook adds those)
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
     if (filters.types.length > 0) {
@@ -50,21 +53,25 @@ export function EventsClient() {
     return qs ? `?${qs}` : "";
   }, [filters, currentUserId]);
 
-  const { data, isLoading } = useSWR<GetActivityEventsResponse>(
-    `/api/activity-events${queryString}`
-  );
+  const {
+    items: paginatedEvents,
+    currentPage,
+    totalPages,
+    isLoading,
+    setPage,
+  } = usePagination<ApiActivityEvent>(`/api/activity-events${queryString}`, EVENTS_LIMIT);
 
   const [live, setLive] = useState<ApiActivityEvent[]>([]);
   const lastIdRef = useRef<number>(0);
   const [freshIds, setFreshIds] = useState<Set<number>>(new Set());
+  const [sseInitialized, setSseInitialized] = useState(false);
 
   // Combine data from API and live SSE events
   const items = useMemo(() => {
-    const base = data?.events || [];
-    // Ensure uniqueness by id; live first (newest at top), then base list
+    // Ensure uniqueness by id; live first (newest at top), then paginated list
     const map = new Map<number, ApiActivityEvent>();
     for (const e of live) map.set(e.id, e);
-    for (const e of base) if (!map.has(e.id)) map.set(e.id, e);
+    for (const e of paginatedEvents) if (!map.has(e.id)) map.set(e.id, e);
 
     // Filter live events based on current filters
     const arr = Array.from(map.values())
@@ -98,23 +105,31 @@ export function EventsClient() {
       .sort((a, b) => b.id - a.id);
 
     return arr;
-  }, [data, live, filters, currentUserId]);
+  }, [paginatedEvents, live, filters, currentUserId]);
 
-  // Track max ID from initial data load
+  // Track max ID from paginated data load
   useEffect(() => {
-    if (!data?.events) return;
-    const maxId = data.events.reduce((m, e) => Math.max(m, e.id), 0);
+    if (paginatedEvents.length === 0) return;
+    const maxId = paginatedEvents.reduce((m, e) => Math.max(m, e.id), 0);
     lastIdRef.current = Math.max(lastIdRef.current, maxId);
-  }, [data]);
+  }, [paginatedEvents]);
 
-  // Clear live events when filters change
+  // Clear live events and reset SSE when filters change
   useEffect(() => {
     setLive([]);
+    setSseInitialized(false);
   }, [queryString]);
 
-  // SSE connection for real-time updates
+  // Initialize SSE once we have first data (not on every page change)
   useEffect(() => {
-    if (data === undefined) return;
+    if (!isLoading && !sseInitialized) {
+      setSseInitialized(true);
+    }
+  }, [isLoading, sseInitialized]);
+
+  // SSE connection for real-time updates - only depends on initialization and filters
+  useEffect(() => {
+    if (!sseInitialized) return;
     let es: EventSource | null = null;
     let cancelled = false;
 
@@ -162,7 +177,7 @@ export function EventsClient() {
       cancelled = true;
       es?.close();
     };
-  }, [data]);
+  }, [sseInitialized]);
 
   const handleFiltersChange = useCallback((newFilters: EventFilters) => {
     setFilters(newFilters);
@@ -178,14 +193,24 @@ export function EventsClient() {
 
       <div className="flex-1 overflow-auto">
         <div className="border-t">
-          {isLoading && !data ? (
+          {isLoading && items.length === 0 ? (
             <div className="p-6 text-center text-muted-foreground">Laster hendelser...</div>
           ) : items.length === 0 ? (
             <div className="p-6 text-center text-muted-foreground">Ingen hendelser funnet</div>
           ) : (
-            items.map((e) => (
-              <ActivityEventItem key={e.id} event={e} isNew={freshIds.has(e.id)} />
-            ))
+            <>
+              {items.map((e) => (
+                <ActivityEventItem key={e.id} event={e} isNew={freshIds.has(e.id)} />
+              ))}
+              <div className="p-4">
+                <SimplePagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setPage}
+                  isLoading={isLoading}
+                />
+              </div>
+            </>
           )}
         </div>
       </div>

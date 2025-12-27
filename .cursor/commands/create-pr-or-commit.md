@@ -152,10 +152,12 @@ List any breaking changes, or "None" if none.
 
 **Set up PR:**
 
+- **Use GitHub CLI to create PR**: Run `gh pr create --title "..." --body "..."` with the PR description
 - Create PR with descriptive title (follows commit message format)
 - Link related issues using keywords: `Fixes #123`, `Closes #456`, `Related to #789`
 - Add appropriate labels
 - Request reviewers if needed
+- **Provide the PR link**: After creating the PR, share the GitHub URL with the user
 
 ### 6. PR Checklist
 
@@ -186,13 +188,16 @@ The PR checklist above focuses on PR-specific items and serves as a final verifi
 
 ### 7. End of Session: Capture Learnings
 
-**After completing the feature/change:**
+**IMPORTANT: This step is REQUIRED and should be done automatically after creating the PR.**
+
+**After completing the feature/change and creating the PR:**
 
 1. **Documentation:**
 
    - Write a short, high-level description of the feature
-   - Store in a README file in the feature's directory (if applicable)
-   - If README exists, update it with new information
+   - Store in `docs/features/{feature-name}/README.md` (if complex feature)
+   - If feature doc exists, update it with new information
+   - See `docs/DOCUMENTATION_STRATEGY.md` for when to create feature docs
 
 2. **Production Readiness Check:**
 
@@ -203,34 +208,87 @@ The PR checklist above focuses on PR-specific items and serves as a final verifi
 
 3. **Knowledge Capture:**
 
-   Ask yourself (or have AI assistant answer):
-
-   > What did you learn in this session that, if you had known earlier, would have let you complete the task faster?
+   **IMPORTANT:** Most sessions won't have learnings worth documenting. That's expected and fine.
 
    **For AI assistants (Cursor/Claude):**
 
-   After getting the answer, take learnings that could help future sessions:
+   **This step is MANDATORY - do not skip it.** After creating the PR, evaluate learnings:
 
-   - Condense the learnings into actionable insights
-   - Add them to relevant documentation files:
-     - `AGENTS.md` for agent-specific patterns
-     - `README.md` for general project knowledge
-     - Feature-specific docs for domain knowledge
-     - `docs/` directory for architectural decisions
+   **Step 1: Evaluate Learnings**
 
-   **Example learning format:**
+   Ask yourself: "What did I learn in this session that, if I had known earlier, would have let me complete the task faster?"
 
-   ```markdown
-   ## Learnings from [Feature Name]
+   For each potential learning, evaluate using this decision process:
 
-   - Pattern: When doing X, always remember to Y
-   - Gotcha: The API endpoint Z requires authentication even for GET requests
-   - Best practice: Use pattern matching for SWR cache invalidation
+   1. **Is this non-obvious?** (Not immediately apparent from reading code)
+
+      - If no → don't document
+      - If yes → continue
+
+   2. **Is this reusable across features?** (Applies to multiple features or future work)
+
+      - If no → `docs/features/{feature-name}/README.md` (if complex feature) or skip
+      - If yes → continue
+
+   3. **Would this have saved time if known earlier?** (Prevents bugs, avoids mistakes)
+      - If no → skip
+      - If yes → document in appropriate location
+
+   **Step 2: Present Evaluation to User**
+
+   Always present your evaluation to the user before documenting:
+
+   ```
+   Evaluated learnings from this session:
+   - [Learning 1]: [Brief description] → [Decision: document in AGENTS.md / docs/features/{feature}/README.md / skip]
+   - [Learning 2]: [Brief description] → [Decision: document / skip]
+   - [Summary]: [X] learnings to document, [Y] skipped (not non-obvious/reusable/time-saving)
+   ```
+
+   If no learnings meet the criteria, state clearly:
+
+   ```
+   Evaluated learnings: Nothing important to document
+   - All learnings were either obvious, feature-specific, or not time-saving
+   ```
+
+   **Step 3: Document (if approved)**
+
+   Only after user review, document learnings in appropriate locations:
+
+   - **Reusable patterns/gotchas** → `AGENTS.md` (must be non-obvious AND reusable)
+   - **Feature-specific learnings** → `docs/features/{feature-name}/README.md` (if complex feature)
+   - **Architecture decisions** → `docs/adr/` (if significant decision with trade-offs)
+
+   See `docs/DOCUMENTATION_STRATEGY.md` for full guidelines on where to document.
+
+   **What TO document:**
+
+   - Gotchas that are easy to miss
+   - Patterns that prevent bugs
+   - Non-obvious best practices
+   - Reusable patterns across features
+
+   **What NOT to document:**
+
+   - Obvious patterns (e.g., "use TypeScript types")
+   - Feature-specific implementation details (goes in `docs/features/{feature-name}/README.md`)
+   - One-off solutions that won't be reused
+
+   **Example evaluation:**
+
+   ```
+   Evaluated learnings from this session:
+   - Server sorting mismatch: Server sorted lastName/firstName but client displayed firstName/lastName → Document in AGENTS.md (non-obvious, reusable pattern)
+   - Type extraction: leadCounts type was duplicated → Document in AGENTS.md (prevents bugs, reusable)
+   - Contact deduplication logic: Specific to company-contacts-section → Skip (feature-specific, not complex enough for feature doc)
+   - Summary: 2 learnings to document in AGENTS.md, 1 skipped
    ```
 
 4. **Final Steps:**
    - If ready: commit, push, and create PR (if not already done)
    - If not ready: document what's remaining in PR description or issue
+   - **Always capture learnings before ending the session**
 
 ## Working with Cursor and Claude
 

@@ -31,5 +31,12 @@
     "cosmos/**/*.ts",
     "cosmos/**/*.tsx"
   ],
-  "exclude": ["node_modules", "**/*.test.ts", "**/*.test.tsx", "**/__tests__/**"]
+  "exclude": [
+    "node_modules",
+    "**/*.test.ts",
+    "**/*.test.tsx",
+    "**/__tests__/**",
+    ".next/types/validator.ts",
+    ".next/dev/types/validator.ts"
+  ]
 }

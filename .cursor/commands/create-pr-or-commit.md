@@ -112,13 +112,19 @@ Note:
 - Each commit should be independently reviewable
 - Use `git add -p` or selective staging to group files
 
-### 5. Push and Create PR (if not --commit)
+### 5. Push and Create/Update PR (if not --commit)
 
 **Prepare branch:**
 
 - Ensure all changes are committed
 - Push branch to remote: `git push origin <branch-name>`
 - Verify branch is up to date with main: `git fetch origin && git rebase origin/main` (if needed)
+
+**Check for existing PR:**
+
+- **Check if PR already exists**: Run `gh pr view` to see if a PR exists for the current branch
+- If PR exists, you'll update it instead of creating a new one
+- If no PR exists, create a new one
 
 **Write PR description:**
 
@@ -152,12 +158,16 @@ List any breaking changes, or "None" if none.
 
 **Set up PR:**
 
-- **Use GitHub CLI to create PR**: Run `gh pr create --title "..." --body "..."` with the PR description
-- Create PR with descriptive title (follows commit message format)
+- **If PR exists**: Update the existing PR with `gh pr edit <number> --body "..."` (and `--title "..."` if title needs updating)
+  - Merge new changes into existing description, preserving important context
+  - Update the "Changes" section to include new commits
+  - Update the "Commits" section at the bottom to list all commits
+- **If no PR exists**: Create new PR with `gh pr create --title "..." --body "..."` with the PR description
+- Create/update PR with descriptive title (follows commit message format)
 - Link related issues using keywords: `Fixes #123`, `Closes #456`, `Related to #789`
 - Add appropriate labels
 - Request reviewers if needed
-- **Provide the PR link**: After creating the PR, share the GitHub URL with the user
+- **Provide the PR link**: After creating/updating the PR, share the GitHub URL with the user
 
 ### 6. PR Checklist
 

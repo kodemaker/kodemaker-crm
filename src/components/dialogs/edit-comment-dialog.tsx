@@ -29,9 +29,11 @@ export interface EditCommentDialogProps {
   comment: CommentItem | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onDelete?: () => void | Promise<void>;
+  onUpdate?: () => void | Promise<void>;
 }
 
-export function EditCommentDialog({ comment, open, onOpenChange }: EditCommentDialogProps) {
+export function EditCommentDialog({ comment, open, onOpenChange, onDelete, onUpdate }: EditCommentDialogProps) {
   const schema = z.object({
     content: z.string().min(1, "Innhold er påkrevd"),
   });
@@ -71,6 +73,10 @@ export function EditCommentDialog({ comment, open, onOpenChange }: EditCommentDi
     toast.success("Kommentar oppdatert");
     // Invalidate all comment-related cache keys
     await globalMutate((key) => typeof key === "string" && key.startsWith("/api/comments"));
+    // Refresh recent activities list
+    if (onUpdate) {
+      await onUpdate();
+    }
     onOpenChange(false);
   }
 
@@ -95,6 +101,10 @@ export function EditCommentDialog({ comment, open, onOpenChange }: EditCommentDi
     toast.success("Kommentar slettet");
     // Invalidate all comment-related cache keys
     await globalMutate((key) => typeof key === "string" && key.startsWith("/api/comments"));
+    // Refresh recent activities list
+    if (onDelete) {
+      await onDelete();
+    }
     setIsDeleting(false);
     onOpenChange(false);
   }

@@ -39,6 +39,8 @@ export interface EditFollowupDialogProps {
   followup: FollowupItemData | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onDelete?: () => void | Promise<void>;
+  onUpdate?: () => void | Promise<void>;
 }
 
 function parseDate(dateString: string): Date | null {
@@ -46,7 +48,7 @@ function parseDate(dateString: string): Date | null {
   return isNaN(date.getTime()) ? null : date;
 }
 
-export function EditFollowupDialog({ followup, open, onOpenChange }: EditFollowupDialogProps) {
+export function EditFollowupDialog({ followup, open, onOpenChange, onDelete, onUpdate }: EditFollowupDialogProps) {
   const schema = z.object({
     note: z.string().min(1, "Notat er påkrevd"),
     dueAt: z.date({ message: "Frist er påkrevd" }),
@@ -126,6 +128,10 @@ export function EditFollowupDialog({ followup, open, onOpenChange }: EditFollowu
     toast.success("Oppfølging oppdatert");
     // Invalidate all followup-related cache keys
     await globalMutate((key) => typeof key === "string" && key.startsWith("/api/followups"));
+    // Refresh recent activities list
+    if (onUpdate) {
+      await onUpdate();
+    }
     onOpenChange(false);
   }
 
@@ -150,6 +156,10 @@ export function EditFollowupDialog({ followup, open, onOpenChange }: EditFollowu
     toast.success("Oppfølging slettet");
     // Invalidate all followup-related cache keys
     await globalMutate((key) => typeof key === "string" && key.startsWith("/api/followups"));
+    // Refresh recent activities list
+    if (onDelete) {
+      await onDelete();
+    }
     setIsDeleting(false);
     onOpenChange(false);
   }

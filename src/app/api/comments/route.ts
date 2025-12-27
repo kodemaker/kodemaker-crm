@@ -3,7 +3,7 @@ import { db } from "@/db/client";
 import { comments, companies, contactCompanyHistory, contacts, leads, users } from "@/db/schema";
 import { createActivityEventCommentCreated } from "@/db/activity-events";
 import { z } from "zod";
-import { and, desc, eq, inArray } from "drizzle-orm";
+import { and, count, desc, eq, inArray } from "drizzle-orm";
 import { requireApiAuth } from "@/lib/require-api-auth";
 import { logger } from "@/lib/logger";
 
@@ -43,6 +43,23 @@ const queryParamsSchema = z.object({
       const num = Number(val);
       return isNaN(num) || num <= 0 ? undefined : num;
     }),
+  // Pagination parameters
+  limit: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return 200; // Default for backward compatibility
+      const num = Number(val);
+      return isNaN(num) || num <= 0 ? 200 : Math.min(num, 200);
+    }),
+  page: z
+    .string()
+    .optional()
+    .transform((val) => {
+      if (!val) return 1;
+      const num = Number(val);
+      return isNaN(num) || num < 1 ? 1 : num;
+    }),
 });
 
 export async function GET(req: NextRequest) {
@@ -55,6 +72,8 @@ export async function GET(req: NextRequest) {
       contactId: searchParams.get("contactId") ?? undefined,
       companyId: searchParams.get("companyId") ?? undefined,
       leadId: searchParams.get("leadId") ?? undefined,
+      limit: searchParams.get("limit") ?? undefined,
+      page: searchParams.get("page") ?? undefined,
     });
 
     if (!parsed.success) {
@@ -66,7 +85,8 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    const { contactId, companyId, leadId } = parsed.data;
+    const { contactId, companyId, leadId, limit, page } = parsed.data;
+    const offset = (page - 1) * limit;
 
     // Require at least one valid scope parameter
     if (!contactId && !companyId && !leadId) {
@@ -78,36 +98,43 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    let where = undefined;
-    if (contactId) {
-      where = eq(comments.contactId, contactId);
-    } else if (companyId) {
-      where = eq(comments.companyId, companyId);
-    } else if (leadId) {
-      where = eq(comments.leadId, leadId);
-    }
+    // Build scope condition
+    const where = contactId
+      ? eq(comments.contactId, contactId)
+      : companyId
+        ? eq(comments.companyId, companyId)
+        : eq(comments.leadId, leadId!);
 
-    const rows = await db
-      .select({
-        id: comments.id,
-        content: comments.content,
-        createdAt: comments.createdAt,
-        createdBy: { firstName: users.firstName, lastName: users.lastName },
-        contactId: comments.contactId,
-        companyId: comments.companyId,
-        leadId: comments.leadId,
-      })
-      .from(comments)
-      .leftJoin(users, eq(users.id, comments.createdByUserId))
-      .where(where)
-      .orderBy(desc(comments.createdAt))
-      .limit(200);
+    // Run count and data queries in parallel for efficiency
+    const [countResult, rows] = await Promise.all([
+      db.select({ count: count() }).from(comments).where(where),
+      db
+        .select({
+          id: comments.id,
+          content: comments.content,
+          createdAt: comments.createdAt,
+          createdBy: { firstName: users.firstName, lastName: users.lastName },
+          contactId: comments.contactId,
+          companyId: comments.companyId,
+          leadId: comments.leadId,
+        })
+        .from(comments)
+        .leftJoin(users, eq(users.id, comments.createdByUserId))
+        .where(where)
+        .orderBy(desc(comments.createdAt), desc(comments.id))
+        .offset(offset)
+        .limit(limit),
+    ]);
+
+    const totalCount = countResult[0]?.count ?? 0;
+    const hasMore = offset + rows.length < totalCount;
+    const paginatedRows = rows;
 
     // Collect company, contact, and lead IDs directly from comments
     const companyIds = new Set<number>();
     const contactIds = new Set<number>();
     const leadIds = new Set<number>();
-    for (const r of rows) {
+    for (const r of paginatedRows) {
       if (r.companyId) companyIds.add(r.companyId);
       if (r.contactId) contactIds.add(r.contactId);
       if (r.leadId) leadIds.add(r.leadId);
@@ -158,7 +185,7 @@ export async function GET(req: NextRequest) {
 
     // Fetch contact-company endDate relationships for "sluttet" status
     const contactCompanyPairs: Array<{ contactId: number; companyId: number }> = [];
-    for (const r of rows) {
+    for (const r of paginatedRows) {
       if (r.contactId && r.companyId) {
         contactCompanyPairs.push({
           contactId: r.contactId,
@@ -218,7 +245,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const data = rows.map((r) => {
+    const items = paginatedRows.map((r) => {
       let contactEndDate: string | null = null;
       if (r.contactId && r.companyId) {
         const key = `${r.contactId}-${r.companyId}`;
@@ -236,7 +263,7 @@ export async function GET(req: NextRequest) {
       };
     });
 
-    return NextResponse.json(data);
+    return NextResponse.json({ items, hasMore, totalCount });
   } catch (error) {
     logger.error({ route: "/api/comments", method: "GET", error }, "Error fetching comments");
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

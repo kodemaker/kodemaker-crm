@@ -1,3 +1,10 @@
+// Generic paginated response wrapper
+export type PaginatedResponse<T> = {
+  items: T[];
+  hasMore: boolean;
+  totalCount: number;
+};
+
 // Contacts
 export type ApiContact = {
   id: number;
@@ -162,7 +169,28 @@ export type ApiActivityEvent = {
   contact: { id: number; firstName: string | null; lastName: string | null } | null;
 };
 
-export type GetActivityEventsResponse = {
-  events: ApiActivityEvent[];
-  hasMore: boolean;
+export type GetActivityEventsResponse = PaginatedResponse<ApiActivityEvent>;
+
+// Recent Activities (unified endpoint for activity-log "Siste nytt" section)
+export type RecentActivityType = "comment" | "email" | "followup";
+
+export type ApiRecentActivity = {
+  id: string; // "comment-{id}" | "email-{id}" | "followup-{id}"
+  type: RecentActivityType;
+  createdAt: string;
+  createdBy: { firstName: string | null; lastName: string | null } | null;
+  company: { id: number; name: string } | null;
+  contact: { id: number; firstName: string | null; lastName: string | null } | null;
+  lead: { id: number; description: string; status: LeadStatus } | null;
+  contactEndDate: string | null;
+  // Type-specific data (only one is populated based on type)
+  comment?: { id: number; content: string };
+  email?: { id: number; subject: string | null; content: string };
+  followup?: {
+    id: number;
+    note: string;
+    dueAt: string;
+    completedAt: string;
+    assignedTo: { id: number; firstName: string; lastName: string } | null;
+  };
 };

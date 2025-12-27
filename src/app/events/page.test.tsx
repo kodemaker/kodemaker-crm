@@ -2,29 +2,38 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { EventsClient } from "./events-client";
 import React from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { ApiActivityEvent, GetActivityEventsResponse } from "@/types/api";
+import type { ApiActivityEvent, PaginatedResponse } from "@/types/api";
 import { SessionProvider } from "next-auth/react";
 
-// Mock SWR to return different data based on the URL
+let mockPaginatedData: PaginatedResponse<ApiActivityEvent> | undefined = undefined;
+let mockIsLoading = true;
+
+// Mock regular useSWR for pagination (we no longer use useSWRInfinite)
 vi.mock("swr", () => ({
-  default: (url: string) => {
-    if (url.startsWith("/api/activity-events")) {
-      return mockActivityEventsResponse;
-    }
+  default: (url: string | null) => {
     if (url === "/api/companies") {
-      return { data: [] };
+      return { data: [], isLoading: false };
     }
     if (url === "/api/contacts") {
-      return { data: [] };
+      return { data: [], isLoading: false };
     }
     if (url === "/api/users") {
-      return { data: [] };
+      return { data: [], isLoading: false };
     }
-    return { data: undefined };
+    // For activity-events pagination
+    if (url && url.includes("/api/activity-events")) {
+      return {
+        data: mockPaginatedData,
+        isLoading: mockIsLoading,
+        isValidating: false,
+        error: undefined,
+        mutate: vi.fn(),
+      };
+    }
+    return { data: undefined, isLoading: false };
   },
+  useSWRConfig: () => ({ mutate: vi.fn() }),
 }));
-
-let mockActivityEventsResponse: any = { data: undefined, isLoading: true };
 
 // Mock next/navigation
 vi.mock("next/navigation", () => ({
@@ -36,7 +45,8 @@ vi.mock("next/navigation", () => ({
 describe("EventsPage SSE highlight", () => {
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
-    mockActivityEventsResponse = { data: undefined, isLoading: true };
+    mockPaginatedData = undefined;
+    mockIsLoading = true;
   });
 
   afterEach(() => {
@@ -87,12 +97,13 @@ describe("EventsPage SSE highlight", () => {
       },
     ];
 
-    const initialResponse: GetActivityEventsResponse = {
-      events: initialEvents,
+    // Set up paginated response format (single page response)
+    mockPaginatedData = {
+      items: initialEvents,
       hasMore: false,
+      totalCount: initialEvents.length,
     };
-
-    mockActivityEventsResponse = { data: initialResponse, isLoading: false };
+    mockIsLoading = false;
 
     const esInstances: any[] = [];
     const OriginalES = (global as any).EventSource;

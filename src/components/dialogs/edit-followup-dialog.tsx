@@ -107,12 +107,21 @@ export function EditFollowupDialog({ followup, open, onOpenChange, onDelete, onU
   async function onSubmit(values: z.infer<typeof schema>) {
     if (!followup) return;
 
-    const body = {
+    const wasCompleted = !!followup.completedAt;
+    const isNowCompleted = values.isCompleted;
+
+    const body: Record<string, unknown> = {
       note: values.note,
       dueAt: values.dueAt.toISOString(),
       assignedToUserId: values.assignedToUserId ?? null,
-      completedAt: values.isCompleted ? new Date().toISOString() : null,
     };
+
+    // Only update completedAt if the completion status changed
+    // This preserves the original completedAt timestamp when just editing the note
+    if (wasCompleted !== isNowCompleted) {
+      body.completedAt = isNowCompleted ? new Date().toISOString() : null;
+    }
+    // If status didn't change, don't send completedAt to preserve the original timestamp
 
     const res = await fetch(`/api/followups/${followup.id}`, {
       method: "PATCH",

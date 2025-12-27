@@ -70,6 +70,8 @@ export function EventsClient() {
   // Only include live events on page 1 - they should not appear on subsequent pages
   const items = useMemo(() => {
     // Ensure uniqueness by id; live first (newest at top), then paginated list
+    // Deduplication is a safety net for edge cases (e.g., page navigation, timing issues)
+    // With proper SSE initialization, duplicates should be rare
     const map = new Map<number, ApiActivityEvent>();
     if (currentPage === 1) {
       for (const e of live) map.set(e.id, e);
@@ -122,17 +124,21 @@ export function EventsClient() {
   }, [paginatedEvents]);
 
   // Clear live events and reset SSE when filters change
+  // (Closing SSE connection shows as "canceled" in network tab - this is expected)
   useEffect(() => {
     setLive([]);
     setSseInitialized(false);
   }, [queryString]);
 
-  // Initialize SSE once we have first data (not on every page change)
+  // Initialize SSE only after we have data AND lastIdRef is set
   useEffect(() => {
-    if (!isLoading && !sseInitialized) {
+    const shouldInitialize =
+      !isLoading && paginatedEvents.length > 0 && lastIdRef.current > 0 && !sseInitialized;
+
+    if (shouldInitialize) {
       setSseInitialized(true);
     }
-  }, [isLoading, sseInitialized]);
+  }, [isLoading, paginatedEvents.length, sseInitialized]);
 
   // SSE connection for real-time updates - only depends on initialization and filters
   useEffect(() => {
@@ -146,6 +152,7 @@ export function EventsClient() {
       es = new EventSource(`/api/activity-events/stream?since=${since}`);
 
       es.onmessage = (msg) => {
+        if (cancelled) return;
         try {
           const e = JSON.parse(msg.data) as ApiActivityEvent;
           lastIdRef.current = Math.max(lastIdRef.current, e.id);
@@ -170,11 +177,12 @@ export function EventsClient() {
       };
 
       es.onerror = () => {
-        if (!cancelled) {
-          // Backoff reconnect after small delay
-          setTimeout(connect, 2000);
+        if (cancelled) {
+          es?.close();
+          return;
         }
         es?.close();
+        setTimeout(connect, 2000);
       };
     };
 

@@ -158,10 +158,13 @@ export function NewContactDialog({
     toast.success("Kontakt opprettet");
     form.reset();
     const idToRefresh = selectedCompany?.id ?? companyId;
-    if (idToRefresh) {
-      // Refresh company detail cache to show the new contact immediately
-      await globalMutate(`/api/companies/${idToRefresh}`);
-    }
+    
+    // Refresh both contacts list and company detail (if applicable)
+    await Promise.all([
+      globalMutate((key) => typeof key === 'string' && key.startsWith('/api/contacts')),
+      idToRefresh ? globalMutate(`/api/companies/${idToRefresh}`) : Promise.resolve(),
+    ]);
+    
     handleOpenChange(false);
   }
 

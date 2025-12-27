@@ -27,3 +27,16 @@ Comprehensive checklist for conducting thorough code reviews to ensure quality, 
 - [ ] Input validation is present
 - [ ] Sensitive data is handled properly
 - [ ] No hardcoded secrets
+
+## Next Steps
+
+After completing the code review and fixing any issues:
+
+1. **Fix any issues found** during the review
+2. **Re-review** if significant changes were made
+3. **Proceed to commit/PR creation** using `.cursor/commands/create-pr-or-commit.md`
+
+**For AI assistants:**
+
+- After completing this checklist, use: "Follow the create-pr-or-commit command"
+- This ensures code is reviewed before being committed or PR'd

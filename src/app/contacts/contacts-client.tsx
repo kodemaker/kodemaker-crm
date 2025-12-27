@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import useSWR from "swr";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
@@ -11,7 +11,7 @@ export function ContactsClient() {
   const query = q.trim();
   const url = query.length >= 1 ? `/api/contacts?q=${encodeURIComponent(query)}` : `/api/contacts`;
   const { data } = useSWR<ListContactsItem[]>(url);
-  const rows = useMemo(() => data || [], [data]);
+  const rows = data ?? [];
   const router = useRouter();
 
   return (

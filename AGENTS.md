@@ -5,6 +5,15 @@ Purpose
 - Describe how autonomous/scripted agents (and human-in-the-loop) should interact with this codebase.
 - Keep agents safe, fast, and consistent with our product conventions.
 
+**Documentation Scope**
+
+This file contains **reusable patterns, gotchas, and best practices** that apply across multiple features.
+
+- ✅ **Include**: Non-obvious patterns that prevent bugs, reusable gotchas, best practices that save time
+- ❌ **Exclude**: Feature-specific implementation details (use feature READMEs), obvious patterns, one-off solutions
+
+For full documentation strategy, see `docs/DOCUMENTATION_STRATEGY.md`.
+
 Core Principles
 
 - Minimal diffs: prefer small, targeted edits and avoid broad reformatting.
@@ -97,36 +106,43 @@ Database Migration Workflow
 CRITICAL: Always follow this workflow when changing the database schema.
 
 Step 1: Update Schema First
+
 - ALWAYS edit `src/db/schema.ts` first before making any other changes.
 - Never manually edit migration files in `drizzle/` directory.
 - Never skip schema changes and try to write migrations manually.
 
 Step 2: Generate Migration
 After updating `src/db/schema.ts`, ALWAYS run:
+
 ```bash
 pnpm run db:generate-migrations
 ```
+
 This creates a new migration file in `drizzle/000X_*.sql` and updates metadata.
 
 Step 3: Review Migration
+
 - Check the generated migration file in `drizzle/000X_*.sql`.
 - Verify it matches your intended changes.
 - Pay special attention to enum changes (Postgres gotcha: don't recreate existing enums).
 
 Step 4: Apply Migration
 After reviewing, apply the migration:
+
 ```bash
 pnpm run db:migrate
 ```
 
 Step 5: Update Code
 Only after the migration is applied, update:
+
 - API routes (`src/app/api/**/route.ts`) - add new fields to Zod schemas.
 - Type definitions (`src/types/api.ts`) - add new fields to types.
 - UI components - add form fields and display logic.
 - Database query functions (`src/db/*.ts`) - ensure new fields are selected/returned.
 
 Common Migration Mistakes to Avoid:
+
 - ❌ DON'T edit migration files manually.
 - ❌ DON'T skip `pnpm run db:generate-migrations`.
 - ❌ DON'T update code before schema changes.
@@ -149,15 +165,18 @@ type NewUser = InferInsertModel<typeof users>;
 ```
 
 When to use inferred types:
+
 - Internal DB queries and functions in `src/db/*.ts`.
 - API route handlers that return full records.
 
 When to use manual types (in `src/types/api.ts`):
+
 - API responses that include JOINed/nested data.
 - Partial responses or projections.
 - Client-facing types that differ from DB shape.
 
 Pattern: Export inferred types from a central location:
+
 ```typescript
 // src/db/types.ts
 export type { InferSelectModel, InferInsertModel } from "drizzle-orm";
@@ -176,6 +195,9 @@ Common Pitfalls (and fixes)
 - Hydration mismatch: avoid nested anchors; avoid non-deterministic SSR (Date.now(), random) without hydration guards.
 - Route changes must update breadcrumbs and sidebar labels.
 - Use `useSWRConfig().mutate(key)` to revalidate shared lists after POST/PATCH/DELETE.
+- **Sorting consistency**: Always sort server-side. If client displays `firstName lastName`, server should sort by `firstName, lastName` (not `lastName, firstName`). Avoid redundant client-side sorting that overrides server sorting.
+- **Type extraction**: When a type is used in multiple places (e.g., `leadCounts`), extract it to `src/types/api.ts` to prevent type inconsistencies. This is especially important for types that come from database queries.
+- **SWR cache invalidation**: Use predicate functions for cache invalidation: `mutate((key) => typeof key === 'string' && key.startsWith('/api/endpoint'))` to invalidate all related endpoints at once, rather than invalidating individual keys.
 
 Security
 

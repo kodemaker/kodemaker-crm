@@ -92,6 +92,7 @@ When a lead is dragged:
 Uses [@dnd-kit/core](https://dndkit.com/) for drag-and-drop.
 
 **Sensors:**
+
 - `MouseSensor` with 8px distance constraint (prevents accidental drags)
 - `TouchSensor` with 200ms delay and 5px tolerance (better mobile UX)
 
@@ -114,14 +115,15 @@ Edit `kanban-lead-card.tsx`. The card content is defined in the `cardContent` va
 
 ## Files
 
-- `kanban-board.tsx` - Main board component
-- `kanban-column.tsx` - Column component
-- `kanban-lead-card.tsx` - Lead card component
-- `kanban-finished-zone.tsx` - Finished zone component
+- `src/components/kanban/kanban-board.tsx` - Main board component
+- `src/components/kanban/kanban-column.tsx` - Column component
+- `src/components/kanban/kanban-lead-card.tsx` - Lead card component
+- `src/components/kanban/kanban-finished-zone.tsx` - Finished zone component
 
 ## Cosmos Fixtures
 
 Fixtures are available at `cosmos/fixtures/components/kanban/`:
+
 - `KanbanLeadCard.fixture.tsx`
 - `KanbanColumn.fixture.tsx`
 - `KanbanFinishedZone.fixture.tsx`

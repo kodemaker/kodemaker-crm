@@ -78,7 +78,7 @@ export function NewCompanyDialog({
     }
     toast.success("Organisasjon opprettet");
     form.reset();
-    await mutate("/api/companies");
+    await mutate((key) => typeof key === 'string' && key.startsWith('/api/companies'));
     handleOpenChange(false);
     onCreated?.();
   }

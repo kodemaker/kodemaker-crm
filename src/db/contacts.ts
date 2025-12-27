@@ -155,7 +155,7 @@ export async function listContacts(query: string | null) {
           )
         : undefined
     )
-    .orderBy(asc(contacts.lastName), asc(contacts.firstName))
+    .orderBy(asc(contacts.firstName), asc(contacts.lastName))
     .limit(limit);
 
   // If searching, also get contacts that match by email from contact_emails table
@@ -177,7 +177,7 @@ export async function listContacts(query: string | null) {
       )
       .leftJoin(companies, eq(companies.id, contactCompanyHistory.companyId))
       .where(ilike(contactEmails.email, `%${query}%`))
-      .orderBy(asc(contacts.lastName), asc(contacts.firstName))
+      .orderBy(asc(contacts.firstName), asc(contacts.lastName))
       .limit(limit);
   }
 

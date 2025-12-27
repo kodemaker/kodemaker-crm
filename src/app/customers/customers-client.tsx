@@ -4,28 +4,25 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import type { CompanyLeadCounts } from "@/types/api";
 
 type Company = {
   id: number;
   name: string;
   websiteUrl?: string | null;
   emailDomain?: string | null;
-  leadCounts?: {
-    NEW: number;
-    IN_PROGRESS: number;
-    LOST: number;
-    WON: number;
-    BORTFALT: number;
-  };
+  leadCounts?: CompanyLeadCounts;
 };
 
 export function CustomersClient() {
   const { data } = useSWR<Company[]>(`/api/companies`);
   const [search, setSearch] = useState("");
-  const filtered = useMemo(
-    () => (data || []).filter((c) => c.name.toLowerCase().includes(search.toLowerCase())),
-    [data, search]
-  );
+  const filtered = useMemo(() => {
+    const sorted = (data || []).sort((a, b) =>
+      a.name.toLowerCase().localeCompare(b.name.toLowerCase())
+    );
+    return sorted.filter((c) => c.name.toLowerCase().includes(search.toLowerCase()));
+  }, [data, search]);
   const router = useRouter();
 
   return (

@@ -104,12 +104,7 @@ function buildQueryParams(
   return { followupParams, recentActivitiesParams };
 }
 
-export function ActivityLog({
-  leadId,
-  contactId,
-  companyId,
-  contactIds,
-}: ActivityLogProps) {
+export function ActivityLog({ leadId, contactId, companyId, contactIds }: ActivityLogProps) {
   const [activeTab, setActiveTab] = useState<"followup" | "comment">("followup");
   const [newComment, setNewComment] = useState("");
   const [newFollowupNote, setNewFollowupNote] = useState("");
@@ -141,15 +136,9 @@ export function ActivityLog({
     isLoading: isLoadingOpenFollowups,
     setPage: setOpenFollowupsPage,
     mutate: mutateOpenFollowups,
-  } = usePagination<FollowupItemType>(
-    `/api/followups?${followupParams}`,
-    OPEN_FOLLOWUPS_LIMIT
-  );
+  } = usePagination<FollowupItemType>(`/api/followups?${followupParams}`, OPEN_FOLLOWUPS_LIMIT);
 
   // "Siste nytt" section - unified recent activities endpoint
-  // TODO: List doesn't update when an item is deleted until page change.
-  // Fix: Add mutateRecentActivities() call in EditCommentDialog and EditFollowupDialog
-  // onDelete callbacks, similar to how completeFollowup already calls mutateRecentActivities().
   const {
     items: recentActivities,
     currentPage: recentActivitiesPage,
@@ -531,6 +520,12 @@ export function ActivityLog({
             setSelectedFollowup(null);
           }
         }}
+        onDelete={async () => {
+          await mutateRecentActivities();
+        }}
+        onUpdate={async () => {
+          await mutateRecentActivities();
+        }}
       />
 
       <EditCommentDialog
@@ -541,6 +536,12 @@ export function ActivityLog({
           if (!open) {
             setSelectedComment(null);
           }
+        }}
+        onDelete={async () => {
+          await mutateRecentActivities();
+        }}
+        onUpdate={async () => {
+          await mutateRecentActivities();
         }}
       />
     </section>

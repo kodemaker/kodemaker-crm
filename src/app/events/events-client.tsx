@@ -67,10 +67,13 @@ export function EventsClient() {
   const [sseInitialized, setSseInitialized] = useState(false);
 
   // Combine data from API and live SSE events
+  // Only include live events on page 1 - they should not appear on subsequent pages
   const items = useMemo(() => {
     // Ensure uniqueness by id; live first (newest at top), then paginated list
     const map = new Map<number, ApiActivityEvent>();
-    for (const e of live) map.set(e.id, e);
+    if (currentPage === 1) {
+      for (const e of live) map.set(e.id, e);
+    }
     for (const e of paginatedEvents) if (!map.has(e.id)) map.set(e.id, e);
 
     // Filter live events based on current filters
@@ -92,7 +95,11 @@ export function EventsClient() {
         if (filters.userFilter === "mine" && currentUserId && e.actorUser?.id !== currentUserId) {
           return false;
         }
-        if (filters.userFilter === "excludeMine" && currentUserId && e.actorUser?.id === currentUserId) {
+        if (
+          filters.userFilter === "excludeMine" &&
+          currentUserId &&
+          e.actorUser?.id === currentUserId
+        ) {
           return false;
         }
         if (typeof filters.userFilter === "number" && e.actorUser?.id !== filters.userFilter) {
@@ -105,7 +112,7 @@ export function EventsClient() {
       .sort((a, b) => b.id - a.id);
 
     return arr;
-  }, [paginatedEvents, live, filters, currentUserId]);
+  }, [paginatedEvents, live, filters, currentUserId, currentPage]);
 
   // Track max ID from paginated data load
   useEffect(() => {

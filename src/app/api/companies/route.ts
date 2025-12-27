@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db/client";
 import { companies, leads } from "@/db/schema";
 import { z } from "zod";
-import { ilike, inArray, sql } from "drizzle-orm";
+import { asc, ilike, inArray, sql } from "drizzle-orm";
 import { requireApiAuth } from "@/lib/require-api-auth";
+import type { CompanyLeadCounts } from "@/types/api";
 
 const createCompanySchema = z.object({
   name: z.string().min(1),
@@ -18,7 +19,7 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q")?.trim();
-  const baseQuery = db.select().from(companies);
+  const baseQuery = db.select().from(companies).orderBy(asc(companies.name));
   const rows = q
     ? await baseQuery.where(ilike(companies.name, `%${q}%`)).limit(50)
     : await baseQuery.limit(100);
@@ -36,17 +37,7 @@ export async function GET(req: NextRequest) {
     .where(inArray(leads.companyId, ids))
     .groupBy(leads.companyId, leads.status);
 
-  const byCompany: Record<
-    number,
-    {
-      NEW: number;
-      IN_PROGRESS: number;
-      ON_HOLD: number;
-      LOST: number;
-      WON: number;
-      BORTFALT: number;
-    }
-  > = {};
+  const byCompany: Record<number, CompanyLeadCounts> = {};
   for (const id of ids) {
     byCompany[id] = { NEW: 0, IN_PROGRESS: 0, ON_HOLD: 0, LOST: 0, WON: 0, BORTFALT: 0 };
   }

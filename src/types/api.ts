@@ -92,6 +92,15 @@ export type ApiCompany = {
   createdAt: string;
 };
 
+export type CompanyLeadCounts = {
+  NEW: number;
+  IN_PROGRESS: number;
+  ON_HOLD: number;
+  LOST: number;
+  WON: number;
+  BORTFALT: number;
+};
+
 export type GetCompanyDetailResponse = {
   company: ApiCompany;
   contacts: Array<{

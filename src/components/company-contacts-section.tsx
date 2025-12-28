@@ -1,7 +1,6 @@
 "use client";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Users, UserPlus, Contact } from "lucide-react";
 import { NewContactDialog } from "@/components/dialogs/new-contact-dialog";
 import { EmptyState } from "@/components/ui/empty-state";
 import { formatDate } from "@/lib/utils";
@@ -32,7 +31,6 @@ export function CompanyContactsSection({ company, contacts }: CompanyContactsSec
       <section>
         <EmptyState
           layout="horizontal"
-          icons={[Users, UserPlus, Contact]}
           title="Ingen kontakter enda"
           description="Legg til kontaktpersoner for å holde oversikt over hvem du snakker med."
           action={{

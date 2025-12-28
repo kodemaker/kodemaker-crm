@@ -7,7 +7,7 @@ import { requireApiAuth } from "@/lib/require-api-auth";
 import type { CompanyLeadCounts } from "@/types/api";
 
 const createCompanySchema = z.object({
-  name: z.string().min(1),
+  name: z.string().min(1, "Navn er påkrevd"),
   websiteUrl: z.url({ error: "Ugyldig URL" }).optional().or(z.literal("")),
   emailDomain: z.string().optional(),
   description: z.string().optional(),

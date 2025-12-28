@@ -1,8 +1,8 @@
 "use client";
 import useSWR, { useSWRConfig } from "swr";
-import { ReactNode, useEffect, useState } from "react";
+import { ReactNode, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Save } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Save } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -16,14 +16,18 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import {
   Command,
   CommandEmpty,
+  CommandGroup,
   CommandInput,
   CommandItem,
   CommandList,
+  CommandSeparator,
 } from "@/components/ui/command";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "sonner";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { cn } from "@/lib/utils";
 import {
   Form,
   FormControl,
@@ -32,11 +36,11 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form";
+import { QuickCompanyDialog } from "@/components/dialogs/quick-company-dialog";
 
 type Company = {
   id: number;
   name: string;
-  emailDomain?: string | null;
 };
 
 export interface NewContactDialogProps {
@@ -55,9 +59,9 @@ export function NewContactDialog({
   onOpenChange,
 }: NewContactDialogProps) {
   const schema = z.object({
-    firstName: z.string().min(1),
-    lastName: z.string().min(1),
-    email: z.email({ error: "Ugyldig epost" }).optional().or(z.literal("")),
+    firstName: z.string().min(1, "Fornavn er påkrevd"),
+    lastName: z.string().min(1, "Etternavn er påkrevd"),
+    email: z.email({ error: "Ugyldig e-postadresse" }).optional().or(z.literal("")),
     phone: z.string().optional(),
     linkedInUrl: z.url({ error: "Ugyldig URL" }).optional().or(z.literal("")),
     description: z.string().optional(),
@@ -86,67 +90,49 @@ export function NewContactDialog({
   const [selectedCompany, setSelectedCompany] = useState<{
     id: number;
     name: string;
-    emailDomain?: string | null;
   } | null>(null);
-  const { data: companyOptions } = useSWR<Company[]>(
-    companyQuery ? `/api/companies?q=${encodeURIComponent(companyQuery)}` : null
+  const [createCompanyDialogOpen, setCreateCompanyDialogOpen] = useState(false);
+
+  const { data: allCompanies } = useSWR<Company[]>(
+    companyOpen ? "/api/companies" : null
   );
   const { mutate: globalMutate } = useSWRConfig();
-  const [emailManuallyEdited, setEmailManuallyEdited] = useState(false);
 
-  const firstNameValue = form.watch("firstName");
-  const lastNameValue = form.watch("lastName");
-
-  function normalizeNamePart(value: string): string {
-    return value
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "")
-      .replace(/[^a-zA-Z0-9]/g, "")
-      .toLowerCase();
-  }
-
-  function buildEmailSuggestion(
-    firstName: string,
-    lastName: string,
-    domain: string | null | undefined
-  ): string | undefined {
-    if (!domain) return undefined;
-    const cleanDomain = domain.replace(/^@/, "");
-    const first = normalizeNamePart(firstName || "");
-    const last = normalizeNamePart(lastName || "");
-    if (!first && !last) return undefined;
-    const local = first && last ? `${first}.${last}` : first || last;
-    return `${local}@${cleanDomain}`;
-  }
+  const filteredCompanies = useMemo(() => {
+    if (!allCompanies) return [];
+    if (!companyQuery.trim()) return allCompanies;
+    const lowerQuery = companyQuery.toLowerCase();
+    return allCompanies.filter((c) =>
+      c.name.toLowerCase().includes(lowerQuery)
+    );
+  }, [allCompanies, companyQuery]);
 
   useEffect(() => {
-    if (companyId) {
-      setSelectedCompany({ id: companyId, name: companyName || "" });
-      form.setValue("companyId", companyId);
-    } else {
-      setSelectedCompany(null);
-      form.setValue("companyId", undefined);
+    if (dialogOpen) {
+      if (companyId) {
+        setSelectedCompany({ id: companyId, name: companyName || "" });
+        form.setValue("companyId", companyId);
+      } else {
+        setSelectedCompany(null);
+        form.reset();
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [companyId, companyName]);
-
-  // Auto-suggest email when company has domain and user hasn't manually edited email
-  const domainFromSelection = selectedCompany?.emailDomain;
-
-  useEffect(() => {
-    if (!domainFromSelection || emailManuallyEdited) return;
-    const suggestion = buildEmailSuggestion(firstNameValue, lastNameValue, domainFromSelection);
-    if (suggestion) {
-      form.setValue("email", suggestion, { shouldDirty: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [domainFromSelection, firstNameValue, lastNameValue, emailManuallyEdited]);
+  }, [dialogOpen, companyId, companyName]);
 
   function handleOpenChange(next: boolean) {
     if (!isControlled) {
       setInternalOpen(next);
     }
     onOpenChange?.(next);
+  }
+
+  function handleCompanyCreated(newCompany: { id: number; name: string }) {
+    setSelectedCompany({ id: newCompany.id, name: newCompany.name });
+    form.setValue("companyId", newCompany.id);
+    setCreateCompanyDialogOpen(false);
+    setCompanyOpen(false);
+    setCompanyQuery("");
   }
 
   async function onSubmit(values: z.infer<typeof schema>) {
@@ -158,8 +144,6 @@ export function NewContactDialog({
     toast.success("Kontakt opprettet");
     form.reset();
     const idToRefresh = selectedCompany?.id ?? companyId;
-    
-    // Refresh both contacts list and company detail (if applicable)
     await Promise.all([
       globalMutate((key) => typeof key === 'string' && key.startsWith('/api/contacts')),
       idToRefresh ? globalMutate(`/api/companies/${idToRefresh}`) : Promise.resolve(),
@@ -180,7 +164,7 @@ export function NewContactDialog({
           <DialogTitle>Ny kontakt</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-2 gap-3">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-2 gap-x-5 gap-y-6">
             <FormField
               control={form.control}
               name="firstName"
@@ -213,14 +197,23 @@ export function NewContactDialog({
               render={() => (
                 <FormItem>
                   <FormLabel>Organisasjon</FormLabel>
-                  <Popover open={companyOpen} onOpenChange={setCompanyOpen}>
+                  <Popover
+                    open={companyOpen}
+                    onOpenChange={(open) => {
+                      setCompanyOpen(open);
+                      if (!open) setCompanyQuery("");
+                    }}
+                  >
                     <PopoverTrigger asChild>
                       <Button
                         type="button"
                         variant="outline"
+                        role="combobox"
+                        aria-expanded={companyOpen}
+                        disabled={!!companyId}
                         className="justify-between w-full"
                         onKeyDown={(e) => {
-                          if (companyOpen) return;
+                          if (companyOpen || !!companyId) return;
                           if (e.metaKey || e.ctrlKey || e.altKey) return;
                           if (e.key.length === 1) {
                             setCompanyOpen(true);
@@ -231,14 +224,17 @@ export function NewContactDialog({
                           }
                         }}
                       >
-                        {selectedCompany?.name || "Velg organisasjon"}
+                        <span className="truncate flex-1 min-w-0 text-left">
+                          {selectedCompany?.name || "Velg organisasjon"}
+                        </span>
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]">
                       <Command>
                         <CommandInput
                           autoFocus
-                          placeholder="Søk etter organisasjon..."
+                          placeholder="Sok organisasjon..."
                           value={companyQuery}
                           onValueChange={setCompanyQuery}
                           onKeyDown={(e) => {
@@ -248,26 +244,50 @@ export function NewContactDialog({
                           }}
                         />
                         <CommandList>
-                          <CommandEmpty>Ingen treff</CommandEmpty>
-                          {companyOptions?.map((c) => (
+                          {allCompanies && allCompanies.length > 0 && (
+                            <CommandEmpty>Ingen treff</CommandEmpty>
+                          )}
+                          <CommandGroup>
                             <CommandItem
-                              key={c.id}
-                              value={c.name}
-                              onSelect={() => {
-                                setSelectedCompany({
-                                  id: c.id,
-                                  name: c.name,
-                                  emailDomain: c.emailDomain,
-                                });
-                                form.setValue("companyId", c.id);
-                                // Allow auto-suggestion to apply for newly selected company
-                                setEmailManuallyEdited(false);
-                                setCompanyOpen(false);
-                              }}
+                              value="__create_new__"
+                              onSelect={() => setCreateCompanyDialogOpen(true)}
                             >
-                              {c.name}
+                              <Plus className="mr-2 h-4 w-4" />
+                              Lag ny
                             </CommandItem>
-                          ))}
+                          </CommandGroup>
+                          <CommandSeparator />
+                          <CommandGroup heading="Organisasjoner">
+                            {allCompanies && allCompanies.length === 0 ? (
+                              <div className="py-2 px-2 text-sm text-muted-foreground">
+                                Ingen laget enda
+                              </div>
+                            ) : (
+                              filteredCompanies.map((c) => (
+                                <CommandItem
+                                  key={c.id}
+                                  value={c.name}
+                                  onSelect={() => {
+                                    setSelectedCompany({
+                                      id: c.id,
+                                      name: c.name,
+                                    });
+                                    form.setValue("companyId", c.id);
+                                    setCompanyOpen(false);
+                                    setCompanyQuery("");
+                                  }}
+                                >
+                                  {c.name}
+                                  <Check
+                                    className={cn(
+                                      "ml-auto h-4 w-4",
+                                      selectedCompany?.id === c.id ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                </CommandItem>
+                              ))
+                            )}
+                          </CommandGroup>
                         </CommandList>
                       </Command>
                     </PopoverContent>
@@ -276,18 +296,40 @@ export function NewContactDialog({
                 </FormItem>
               )}
             />
+            <QuickCompanyDialog
+              open={createCompanyDialogOpen}
+              onOpenChange={setCreateCompanyDialogOpen}
+              onCreated={handleCompanyCreated}
+            />
             <FormField
               control={form.control}
               name="role"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Rolle</FormLabel>
-                  <FormControl>
-                    <Input {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
+              render={({ field }) => {
+                const isRoleDisabled = !selectedCompany;
+                return (
+                  <FormItem>
+                    <FormLabel>Rolle</FormLabel>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <FormControl>
+                          <Input
+                            {...field}
+                            disabled={isRoleDisabled}
+                            placeholder={isRoleDisabled ? "Velg organisasjon først" : ""}
+                            className={cn(isRoleDisabled && "cursor-not-allowed")}
+                          />
+                        </FormControl>
+                      </TooltipTrigger>
+                      {isRoleDisabled && (
+                        <TooltipContent side="top">
+                          Velg organisasjon først
+                        </TooltipContent>
+                      )}
+                    </Tooltip>
+                    <FormMessage />
+                  </FormItem>
+                );
+              }}
             />
             <FormField
               control={form.control}
@@ -296,13 +338,7 @@ export function NewContactDialog({
                 <FormItem className="col-span-2">
                   <FormLabel>Epost</FormLabel>
                   <FormControl>
-                    <Input
-                      {...field}
-                      onChange={(e) => {
-                        setEmailManuallyEdited(true);
-                        field.onChange(e);
-                      }}
-                    />
+                    <Input {...field} />
                   </FormControl>
                   <FormMessage />
                 </FormItem>

@@ -1,8 +1,7 @@
 "use client";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect } from "react";
 import useSWR from "swr";
 import {
-  ChevronsUpDown,
   ClipboardCheck,
   Calendar,
   ListTodo,
@@ -14,19 +13,12 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 import { DatePicker } from "@/components/ui/date-picker";
 import { EmailItem } from "@/components/activity-log/email-item";
 import { CommentItem } from "@/components/activity-log/comment-item";
 import { FollowupItem } from "@/components/activity-log/followup-item";
 import { LeadSelector } from "@/components/activity-log/lead-selector";
+import { UserSelect, type UserOption } from "@/components/selects/user-select";
 import { SimplePagination } from "@/components/pagination/simple-pagination";
 import { usePagination } from "@/hooks/use-pagination";
 import type { ApiRecentActivity, LeadStatus } from "@/types/api";
@@ -35,7 +27,6 @@ import { EditCommentDialog } from "@/components/dialogs/edit-comment-dialog";
 import type { FollowupItemData } from "@/components/activity-log/followup-item";
 import { getDefaultDueDate } from "@/lib/utils";
 import { useSession } from "next-auth/react";
-import { useEffect } from "react";
 
 type FollowupItemType = {
   id: number;
@@ -65,7 +56,9 @@ type CommentItem = {
 type ActivityLogProps = {
   leadId?: number;
   contactId?: number;
+  contactName?: string;
   companyId?: number;
+  companyName?: string;
   contactIds?: number[];
 };
 
@@ -73,11 +66,6 @@ type ActivityLogProps = {
 const OPEN_FOLLOWUPS_LIMIT = 3;
 const RECENT_ACTIVITIES_LIMIT = 7;
 
-type User = {
-  id: number;
-  firstName: string;
-  lastName: string;
-};
 
 type Lead = {
   id: number;
@@ -113,14 +101,19 @@ function buildQueryParams(
   return { followupParams, recentActivitiesParams };
 }
 
-export function ActivityLog({ leadId, contactId, companyId, contactIds }: ActivityLogProps) {
+export function ActivityLog({
+  leadId,
+  contactId,
+  contactName,
+  companyId,
+  companyName,
+  contactIds,
+}: ActivityLogProps) {
   const [activeTab, setActiveTab] = useState<"followup" | "comment">("followup");
   const [newComment, setNewComment] = useState("");
   const [newFollowupNote, setNewFollowupNote] = useState("");
   const [newFollowupDue, setNewFollowupDue] = useState<Date | null>(getDefaultDueDate());
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
-  const [userPopoverOpen, setUserPopoverOpen] = useState(false);
-  const [userQuery, setUserQuery] = useState("");
+  const [selectedUser, setSelectedUser] = useState<UserOption | null>(null);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [leadPopoverOpen, setLeadPopoverOpen] = useState(false);
   const [leadQuery, setLeadQuery] = useState("");
@@ -160,7 +153,7 @@ export function ActivityLog({ leadId, contactId, companyId, contactIds }: Activi
     RECENT_ACTIVITIES_LIMIT
   );
 
-  const { data: users } = useSWR<User[]>(`/api/users`);
+  const { data: users } = useSWR<UserOption[]>(`/api/users`);
   const { data: session } = useSession();
 
   // Don't fetch leads when already on a lead page (leadId provided)
@@ -240,17 +233,6 @@ export function ActivityLog({ leadId, contactId, companyId, contactIds }: Activi
     }
   }
 
-  const filteredUsers = useMemo(() => {
-    if (!users || !userQuery) return users ?? [];
-    const query = userQuery.toLowerCase();
-    return users.filter(
-      (u) =>
-        u.firstName.toLowerCase().includes(query) ||
-        u.lastName.toLowerCase().includes(query) ||
-        `${u.firstName} ${u.lastName}`.toLowerCase().includes(query)
-    );
-  }, [users, userQuery]);
-
   const filteredLeads = useMemo(() => {
     if (!leads || !leadQuery) return leads ?? [];
     const query = leadQuery.toLowerCase();
@@ -285,59 +267,11 @@ export function ActivityLog({ leadId, contactId, companyId, contactIds }: Activi
                 </div>
                 <div className="w-full sm:flex-1">
                   <label className="block text-xs text-muted-foreground mb-1">Tildel</label>
-                  <Popover open={userPopoverOpen} onOpenChange={setUserPopoverOpen}>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        className="w-full justify-between text-sm font-normal"
-                      >
-                        {selectedUser
-                          ? `${selectedUser.firstName} ${selectedUser.lastName}`
-                          : "Velg bruker…"}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]">
-                      <Command>
-                        <CommandInput
-                          autoFocus
-                          placeholder="Søk bruker…"
-                          value={userQuery}
-                          onValueChange={setUserQuery}
-                          onKeyDown={(e) => {
-                            if (e.key === "Escape" || e.key === "Tab") {
-                              setUserPopoverOpen(false);
-                            }
-                          }}
-                        />
-                        <CommandList>
-                          <CommandEmpty>Ingen treff</CommandEmpty>
-                          <CommandItem
-                            value=""
-                            onSelect={() => {
-                              setSelectedUser(null);
-                              setUserPopoverOpen(false);
-                            }}
-                          >
-                            Ingen
-                          </CommandItem>
-                          {filteredUsers?.map((u) => (
-                            <CommandItem
-                              key={u.id}
-                              value={`${u.firstName} ${u.lastName}`}
-                              onSelect={() => {
-                                setSelectedUser(u);
-                                setUserPopoverOpen(false);
-                              }}
-                            >
-                              {u.firstName} {u.lastName}
-                            </CommandItem>
-                          ))}
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <UserSelect
+                    value={selectedUser}
+                    onChange={setSelectedUser}
+                    placeholder="Velg bruker…"
+                  />
                 </div>
               </div>
               {leadsEndpoint && (
@@ -349,6 +283,11 @@ export function ActivityLog({ leadId, contactId, companyId, contactIds }: Activi
                   onOpenChange={setLeadPopoverOpen}
                   query={leadQuery}
                   onQueryChange={setLeadQuery}
+                  companyId={companyId}
+                  companyName={companyName}
+                  contactId={contactId}
+                  contactName={contactName}
+                  allowCreate
                 />
               )}
               <div className="flex justify-end">
@@ -378,6 +317,11 @@ export function ActivityLog({ leadId, contactId, companyId, contactIds }: Activi
                   onOpenChange={setLeadPopoverOpen}
                   query={leadQuery}
                   onQueryChange={setLeadQuery}
+                  companyId={companyId}
+                  companyName={companyName}
+                  contactId={contactId}
+                  contactName={contactName}
+                  allowCreate
                 />
               )}
               <div className="flex justify-end">

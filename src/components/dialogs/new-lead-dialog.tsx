@@ -241,7 +241,10 @@ export function NewLeadDialog({
   }
 
   // Determine disabled states based on context
-  const isCompanyDisabled = !!companyId || (!!contactId && !!selectedContactDetails?.currentCompany);
+  // Company is disabled if:
+  // 1. companyId prop is passed (pre-set from parent)
+  // 2. Selected contact has a current company (must use their company)
+  const isCompanyDisabled = !!companyId || !!selectedContactDetails?.currentCompany;
   const isContactDisabled = !!contactId;
 
   return (

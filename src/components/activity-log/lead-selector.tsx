@@ -11,9 +11,10 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
-import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, X } from "lucide-react";
 import { cn, truncateText } from "@/lib/utils";
 import { QuickLeadDialog } from "@/components/dialogs/quick-lead-dialog";
+import { NewLeadDialog } from "@/components/dialogs/new-lead-dialog";
 import type { LeadStatus } from "@/types/api";
 
 type Lead = {
@@ -32,8 +33,12 @@ type LeadSelectorProps = {
   onQueryChange: (query: string) => void;
   /** Company ID for creating new leads */
   companyId?: number;
+  /** Company name for creating new leads */
+  companyName?: string;
   /** Contact ID for creating new leads */
   contactId?: number;
+  /** Contact name for creating new leads */
+  contactName?: string;
   /** Whether to allow creating new leads inline */
   allowCreate?: boolean;
 };
@@ -47,26 +52,23 @@ export function LeadSelector({
   query,
   onQueryChange,
   companyId,
+  companyName,
   contactId,
+  contactName,
   allowCreate = false,
 }: LeadSelectorProps) {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
-  // Sort leads alphabetically by description
   const sortedLeads = useMemo(() => {
     if (!leads) return [];
     return [...leads].sort((a, b) => a.description.localeCompare(b.description, "nb"));
   }, [leads]);
 
-  // Filter leads locally based on query
   const filteredLeads = useMemo(() => {
     if (!query.trim()) return sortedLeads;
     const lowerQuery = query.toLowerCase();
     return sortedLeads.filter((l) => l.description.toLowerCase().includes(lowerQuery));
   }, [sortedLeads, query]);
-
-  // Can only create if allowCreate is true and we have a companyId (leads require a company)
-  const canCreate = allowCreate && !!companyId;
 
   function handleCreated(newLead: { id: number; description: string }) {
     onSelect({ ...newLead, status: "NEW" });
@@ -88,7 +90,35 @@ export function LeadSelector({
             <span className="truncate flex-1 min-w-0 text-left">
               {selectedLead ? truncateText(selectedLead.description, 60) : "Velg lead…"}
             </span>
-            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            {selectedLead ? (
+              <span
+                className="ml-1 inline-flex cursor-pointer hover:text-destructive"
+                role="button"
+                tabIndex={0}
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  onSelect(null);
+                  onQueryChange("");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    onSelect(null);
+                    onQueryChange("");
+                  }
+                }}
+              >
+                <X className="h-4 w-4" />
+              </span>
+            ) : (
+              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+            )}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]">
@@ -105,9 +135,8 @@ export function LeadSelector({
               }}
             />
             <CommandList>
-              <CommandEmpty>Ingen treff</CommandEmpty>
-              {/* Create shortcut */}
-              {canCreate && (
+              {leads && leads.length > 0 && <CommandEmpty>Ingen treff</CommandEmpty>}
+              {allowCreate && (
                 <>
                   <CommandGroup>
                     <CommandItem
@@ -121,41 +150,61 @@ export function LeadSelector({
                   <CommandSeparator />
                 </>
               )}
-              {/* Leads list */}
               <CommandGroup heading="Leads">
-                {filteredLeads.map((l) => (
-                  <CommandItem
-                    key={l.id}
-                    value={l.description}
-                    onSelect={() => {
-                      onSelect(l);
-                      onOpenChange(false);
-                      onQueryChange("");
-                    }}
-                  >
-                    {truncateText(l.description, 60)}
-                    <Check
-                      className={cn(
-                        "ml-auto h-4 w-4",
-                        selectedLead?.id === l.id ? "opacity-100" : "opacity-0"
-                      )}
-                    />
-                  </CommandItem>
-                ))}
+                {leads && leads.length === 0 ? (
+                  <div className="py-2 px-2 text-sm text-muted-foreground">
+                    Ingen laget enda
+                  </div>
+                ) : (
+                  filteredLeads.map((l) => (
+                    <CommandItem
+                      key={l.id}
+                      value={l.description}
+                      onSelect={() => {
+                        onSelect(l);
+                        onOpenChange(false);
+                        onQueryChange("");
+                      }}
+                    >
+                      {truncateText(l.description, 60)}
+                      <Check
+                        className={cn(
+                          "ml-auto h-4 w-4",
+                          selectedLead?.id === l.id ? "opacity-100" : "opacity-0"
+                        )}
+                      />
+                    </CommandItem>
+                  ))
+                )}
               </CommandGroup>
             </CommandList>
           </Command>
         </PopoverContent>
       </Popover>
-      {canCreate && (
-        <QuickLeadDialog
-          open={createDialogOpen}
-          onOpenChange={setCreateDialogOpen}
-          onCreated={handleCreated}
-          companyId={companyId!}
-          contactId={contactId}
-        />
-      )}
+      {allowCreate &&
+        (companyId ? (
+          <QuickLeadDialog
+            open={createDialogOpen}
+            onOpenChange={setCreateDialogOpen}
+            onCreated={handleCreated}
+            companyId={companyId}
+            contactId={contactId}
+          />
+        ) : (
+          <NewLeadDialog
+            trigger={null}
+            open={createDialogOpen}
+            onOpenChange={setCreateDialogOpen}
+            companyName={companyName}
+            contactId={contactId}
+            contactName={contactName}
+            onCreated={() => {
+              setCreateDialogOpen(false);
+              onOpenChange(false);
+              onQueryChange("");
+            }}
+          />
+        ))}
     </div>
   );
 }

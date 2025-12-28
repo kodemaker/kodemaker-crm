@@ -18,7 +18,8 @@ import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
-import { Save } from "lucide-react";
+import { Save, Trash2 } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { LeadHeader } from "@/components/entity-summary-header";
 import { LeadStatusSelect, type LeadStatus } from "@/components/lead-status-select";
@@ -68,6 +69,8 @@ function LeadForm({
   mutate: ReturnType<typeof useSWRConfig>["mutate"];
   router: ReturnType<typeof useRouter>;
 }) {
+  const [isDeleting, setIsDeleting] = useState(false);
+
   const form = useForm<z.infer<typeof schema>>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -91,6 +94,34 @@ function LeadForm({
         ? `/customers/${data.company.id}`
         : "/customers";
     router.push(target);
+  }
+
+  async function handleDelete() {
+    if (
+      !confirm(
+        "Slette lead? Kommentarer, oppfølginger og hendelser knyttet til denne leaden vil også bli slettet. Dette kan ikke angres."
+      )
+    ) {
+      return;
+    }
+
+    setIsDeleting(true);
+    const res = await fetch(`/api/leads/${id}`, { method: "DELETE" });
+
+    if (!res.ok) {
+      toast.error("Kunne ikke slette lead");
+      setIsDeleting(false);
+      return;
+    }
+
+    toast.success("Lead slettet");
+    // Invalidate caches: leads + company page
+    await Promise.all([
+      mutate((key) => typeof key === "string" && key.startsWith("/api/leads")),
+      data.company && mutate(`/api/companies/${data.company.id}`),
+    ]);
+    // Leads always belong to a company, so navigate there
+    router.push(data.company ? `/customers/${data.company.id}` : "/customers");
   }
 
   const crumbs = [
@@ -170,8 +201,21 @@ function LeadForm({
                 )}
               />
             </div>
-            <div className="flex justify-end pt-2">
-              <Button type="submit" className="inline-flex items-center gap-1.5">
+            <div className="flex justify-between pt-2">
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDelete}
+                disabled={isDeleting}
+                className="inline-flex items-center gap-1.5"
+              >
+                <Trash2 className="h-4 w-4" /> Slett
+              </Button>
+              <Button
+                type="submit"
+                disabled={isDeleting}
+                className="inline-flex items-center gap-1.5"
+              >
                 <Save className="h-4 w-4" /> Lagre
               </Button>
             </div>

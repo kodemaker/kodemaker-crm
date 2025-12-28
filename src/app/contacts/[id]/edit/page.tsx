@@ -1,5 +1,5 @@
 "use client";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
@@ -38,9 +38,11 @@ export default function EditContactPage() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
   const router = useRouter();
+  const { mutate: globalMutate } = useSWRConfig();
   const { data, mutate } = useSWR<{
     contact: Contact;
     contactEmails: ContactEmail[];
+    currentCompany?: { id: number; name: string } | null;
     history: Array<{
       id: number;
       startDate: string;
@@ -50,6 +52,7 @@ export default function EditContactPage() {
     }>;
   }>(id ? `/api/contacts/${id}` : null);
   const contact = data?.contact;
+  const currentCompany = data?.currentCompany;
   const history = data?.history || [];
   type Company = { id: number; name: string; emailDomain?: string | null };
   const [open, setOpen] = useState(false);
@@ -376,12 +379,18 @@ export default function EditContactPage() {
             <button
               className="px-3 py-1.5 text-sm rounded bg-red-600 text-white hover:bg-red-700 inline-flex items-center gap-1.5"
               onClick={async () => {
-                if (!confirm("Slette kontakt? Dette kan ikke angres.")) return;
+                if (!confirm("Slette kontakt? Kommentarer, oppfølginger, e-poster og hendelser knyttet til denne kontakten vil også bli slettet. Dette kan ikke angres.")) return;
                 const res = await fetch(`/api/contacts/${id}`, {
                   method: "DELETE",
                 });
                 if (res.ok) {
-                  router.push("/contacts");
+                  // Invalidate caches
+                  await Promise.all([
+                    globalMutate((key) => typeof key === "string" && key.startsWith("/api/contacts")),
+                    currentCompany && globalMutate(`/api/companies/${currentCompany.id}`),
+                  ]);
+                  // Navigate to company if exists, else contacts list
+                  router.push(currentCompany ? `/customers/${currentCompany.id}` : "/contacts");
                 }
               }}
             >

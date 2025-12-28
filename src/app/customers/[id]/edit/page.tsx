@@ -1,5 +1,5 @@
 "use client";
-import useSWR from "swr";
+import useSWR, { useSWRConfig } from "swr";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
@@ -18,6 +18,7 @@ export default function EditCompanyPage() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
   const router = useRouter();
+  const { mutate: globalMutate } = useSWRConfig();
   const { data, mutate } = useSWR<{ company: Company }>(id ? `/api/companies/${id}` : null);
   const company = data?.company;
   const [name, setName] = useState(company?.name || "");
@@ -93,11 +94,13 @@ export default function EditCompanyPage() {
           <Button
             variant="destructive"
             onClick={async () => {
-              if (!confirm("Slette kunde? Dette kan ikke angres.")) return;
+              if (!confirm("Slette kunde? Leads, kommentarer, oppfølginger, e-poster og hendelser knyttet til denne kunden vil også bli slettet. Dette kan ikke angres.")) return;
               const res = await fetch(`/api/companies/${id}`, {
                 method: "DELETE",
               });
               if (res.ok) {
+                // Invalidate companies cache
+                await globalMutate((key) => typeof key === "string" && key.startsWith("/api/companies"));
                 router.push("/customers");
               }
             }}

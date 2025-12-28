@@ -33,6 +33,8 @@ export interface SearchableSelectProps<T> {
   searchPlaceholder?: string;
   /** Message shown when no items match search */
   emptyMessage?: string;
+  /** Message shown when the list is completely empty (no items exist at all) */
+  emptyListMessage?: string;
   /** Whether selection can be cleared */
   allowClear?: boolean;
   /** Whether the select is disabled */
@@ -74,6 +76,7 @@ export function SearchableSelect<T>({
   placeholder = "Velg...",
   searchPlaceholder = "Sok...",
   emptyMessage = "Ingen treff",
+  emptyListMessage = "Ingen laget enda",
   allowClear = false,
   disabled = false,
   allowCreate = false,
@@ -151,7 +154,8 @@ export function SearchableSelect<T>({
             onKeyDown={handleInputKeyDown}
           />
           <CommandList>
-            <CommandEmpty>{emptyMessage}</CommandEmpty>
+            {/* Only show "Ingen treff" when searching, not when list is empty */}
+            {items && items.length > 0 && <CommandEmpty>{emptyMessage}</CommandEmpty>}
 
             {/* Create shortcut - always visible when allowCreate is true */}
             {allowCreate && (
@@ -176,33 +180,39 @@ export function SearchableSelect<T>({
                   <span className="text-muted-foreground">Fjern valg</span>
                 </CommandItem>
               )}
-              {filteredItems.map((item) => {
-                const itemValue = getValue(item);
-                const itemLabel = getLabel(item);
-                const isSelected = selectedValue === itemValue;
+              {items && items.length === 0 ? (
+                <div className="py-2 px-2 text-sm text-muted-foreground">
+                  {emptyListMessage}
+                </div>
+              ) : (
+                filteredItems.map((item) => {
+                  const itemValue = getValue(item);
+                  const itemLabel = getLabel(item);
+                  const isSelected = selectedValue === itemValue;
 
-                return (
-                  <CommandItem
-                    key={itemValue}
-                    value={itemLabel}
-                    onSelect={() => handleSelect(item)}
-                  >
-                    {renderItem ? (
-                      renderItem(item, isSelected)
-                    ) : (
-                      <>
-                        {itemLabel}
-                        <Check
-                          className={cn(
-                            "ml-auto h-4 w-4",
-                            isSelected ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                      </>
-                    )}
-                  </CommandItem>
-                );
-              })}
+                  return (
+                    <CommandItem
+                      key={itemValue}
+                      value={itemLabel}
+                      onSelect={() => handleSelect(item)}
+                    >
+                      {renderItem ? (
+                        renderItem(item, isSelected)
+                      ) : (
+                        <>
+                          {itemLabel}
+                          <Check
+                            className={cn(
+                              "ml-auto h-4 w-4",
+                              isSelected ? "opacity-100" : "opacity-0"
+                            )}
+                          />
+                        </>
+                      )}
+                    </CommandItem>
+                  );
+                })
+              )}
             </CommandGroup>
           </CommandList>
         </Command>

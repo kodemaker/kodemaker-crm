@@ -53,7 +53,12 @@ export function ContactDetailClient() {
         }
       />
 
-      <ActivityLog contactId={contact.id} companyId={currentCompany?.id} />
+      <ActivityLog
+        contactId={contact.id}
+        contactName={`${contact.firstName} ${contact.lastName}`}
+        companyId={currentCompany?.id}
+        companyName={currentCompany?.name}
+      />
 
       <ContactCompaniesSection previousCompanies={previousCompanies} />
 

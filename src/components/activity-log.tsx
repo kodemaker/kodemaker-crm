@@ -47,7 +47,9 @@ type CommentItem = {
 type ActivityLogProps = {
   leadId?: number;
   contactId?: number;
+  contactName?: string;
   companyId?: number;
+  companyName?: string;
   contactIds?: number[];
 };
 
@@ -90,7 +92,14 @@ function buildQueryParams(
   return { followupParams, recentActivitiesParams };
 }
 
-export function ActivityLog({ leadId, contactId, companyId, contactIds }: ActivityLogProps) {
+export function ActivityLog({
+  leadId,
+  contactId,
+  contactName,
+  companyId,
+  companyName,
+  contactIds,
+}: ActivityLogProps) {
   const [activeTab, setActiveTab] = useState<"followup" | "comment">("followup");
   const [newComment, setNewComment] = useState("");
   const [newFollowupNote, setNewFollowupNote] = useState("");
@@ -266,8 +275,10 @@ export function ActivityLog({ leadId, contactId, companyId, contactIds }: Activi
                   query={leadQuery}
                   onQueryChange={setLeadQuery}
                   companyId={companyId}
+                  companyName={companyName}
                   contactId={contactId}
-                  allowCreate={!!companyId}
+                  contactName={contactName}
+                  allowCreate
                 />
               )}
               <div className="flex justify-end">
@@ -298,8 +309,10 @@ export function ActivityLog({ leadId, contactId, companyId, contactIds }: Activi
                   query={leadQuery}
                   onQueryChange={setLeadQuery}
                   companyId={companyId}
+                  companyName={companyName}
                   contactId={contactId}
-                  allowCreate={!!companyId}
+                  contactName={contactName}
+                  allowCreate
                 />
               )}
               <div className="flex justify-end">

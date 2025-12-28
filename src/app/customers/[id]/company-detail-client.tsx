@@ -38,6 +38,7 @@ export function CompanyDetailClient() {
 
       <ActivityLog
         companyId={company.id}
+        companyName={company.name}
         contactIds={contactIds.length > 0 ? contactIds : undefined}
       />
 

@@ -2,7 +2,7 @@
 import useSWR, { useSWRConfig } from "swr";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Check, ChevronsUpDown, Plus, Save } from "lucide-react";
+import { Check, ChevronsUpDown, Plus, Save, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -200,6 +200,23 @@ export function NewLeadDialog({
     setContactQuery("");
   }
 
+  function handleClearContact() {
+    setSelectedContact(null);
+    form.setValue("contactId", undefined);
+    // Also clear company if it was auto-filled from the contact
+    if (!companyId) {
+      setSelectedCompany(null);
+      form.setValue("companyId", undefined);
+    }
+  }
+
+  function handleClearCompany() {
+    if (!companyId) {
+      setSelectedCompany(null);
+      form.setValue("companyId", undefined);
+    }
+  }
+
   async function onSubmit(values: z.infer<typeof schema>) {
     const res = await fetch("/api/leads", {
       method: "POST",
@@ -347,7 +364,33 @@ export function NewLeadDialog({
                               ? `${selectedContact.firstName} ${selectedContact.lastName}`
                               : "Velg kontakt"}
                           </span>
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          {selectedContact && !isContactDisabled ? (
+                            <span
+                              className="ml-1 inline-flex cursor-pointer hover:text-destructive"
+                              role="button"
+                              tabIndex={0}
+                              onPointerDown={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleClearContact();
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleClearContact();
+                                }
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </span>
+                          ) : (
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          )}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]">
@@ -445,7 +488,33 @@ export function NewLeadDialog({
                           <span className="truncate flex-1 min-w-0 text-left">
                             {selectedCompany?.name || "Velg organisasjon"}
                           </span>
-                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          {selectedCompany && !isCompanyDisabled ? (
+                            <span
+                              className="ml-1 inline-flex cursor-pointer hover:text-destructive"
+                              role="button"
+                              tabIndex={0}
+                              onPointerDown={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                              }}
+                              onClick={(e) => {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                handleClearCompany();
+                              }}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  e.stopPropagation();
+                                  handleClearCompany();
+                                }
+                              }}
+                            >
+                              <X className="h-4 w-4" />
+                            </span>
+                          ) : (
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          )}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]">

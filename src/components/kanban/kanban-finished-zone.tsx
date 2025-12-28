@@ -4,7 +4,7 @@ import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-import { Banknote, Building2, Trophy, XCircle, MinusCircle } from "lucide-react";
+import { Banknote, Building2, Trophy, XCircle, MinusCircle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 import type { KanbanLead } from "./kanban-lead-card";
 
@@ -255,8 +255,13 @@ export function KanbanFinishedZone({
           />
         ))}
         {totalFinished === 0 && (
-          <div className="text-center text-muted-foreground text-sm py-4">
-            Ingen ferdige leads
+          <div className="flex flex-col items-center justify-center text-center py-6 px-4">
+            <div className="bg-muted/50 rounded-full p-3 mb-3">
+              <CheckCircle2 className="size-5 text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Dra lead hit når den er vunnet, tapt, eller bortfalt
+            </p>
           </div>
         )}
       </div>

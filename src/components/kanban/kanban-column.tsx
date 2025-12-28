@@ -4,6 +4,7 @@ import { useDroppable } from "@dnd-kit/core";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { KanbanLeadCard, type KanbanLead } from "./kanban-lead-card";
+import { Inbox } from "lucide-react";
 
 type KanbanColumnProps = {
   id: string;
@@ -44,8 +45,13 @@ export function KanbanColumn({ id, title, leads, className }: KanbanColumnProps)
           <KanbanLeadCard key={lead.id} lead={lead} />
         ))}
         {leads.length === 0 && (
-          <div className="text-center text-muted-foreground text-sm py-8">
-            Ingen leads
+          <div className="flex flex-col items-center justify-center text-center py-8 px-4">
+            <div className="bg-muted/50 rounded-full p-3 mb-3">
+              <Inbox className="size-5 text-muted-foreground" />
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Opprett lead eller dra hit
+            </p>
           </div>
         )}
       </div>

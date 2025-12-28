@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import React from "react";
 import { describe, expect, it, vi } from "vitest";
 import { LeadsSection } from "./leads-section";
@@ -41,7 +42,21 @@ describe("LeadsSection", () => {
 
   it("renders empty state when no leads", () => {
     render(<LeadsSection leads={[]} />);
-    expect(screen.getByText("Ingen")).toBeDefined();
+    expect(screen.getByText("Ingen leads enda")).toBeDefined();
+    expect(screen.getByText("Er det noe du kan gjøre for å endre dette?")).toBeDefined();
+  });
+
+  it("calls emptyStateAction.onClick when action button is clicked", async () => {
+    const handleClick = vi.fn();
+    render(
+      <LeadsSection
+        leads={[]}
+        emptyStateAction={{ label: "Legg til lead", onClick: handleClick }}
+      />
+    );
+    const button = screen.getByRole("button", { name: "Legg til lead" });
+    await userEvent.click(button);
+    expect(handleClick).toHaveBeenCalledTimes(1);
   });
 
   it("renders header action when provided", () => {

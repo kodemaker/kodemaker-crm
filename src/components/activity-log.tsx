@@ -1,6 +1,15 @@
 "use client";
 import { useMemo, useRef, useState, useEffect } from "react";
 import useSWR from "swr";
+import {
+  ClipboardCheck,
+  Calendar,
+  ListTodo,
+  AtSign,
+  MessageCircle,
+  PartyPopper,
+} from "lucide-react";
+import { EmptyState } from "@/components/ui/empty-state";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -327,11 +336,19 @@ export function ActivityLog({
 
       <div className="mt-6 space-y-6">
         <div className="bg-background rounded p-4">
-          <h3 className="text-sm font-medium mb-2">Krever handling:</h3>
+          {openFollowups.length > 0 && (
+            <h3 className="text-sm font-medium mb-2">Krever handling:</h3>
+          )}
           {isLoadingOpenFollowups && openFollowups.length === 0 ? (
             <div className="p-3 text-sm text-muted-foreground">Laster…</div>
           ) : openFollowups.length === 0 ? (
-            <div className="border rounded p-3 text-sm text-muted-foreground">Ingen</div>
+            <EmptyState
+              layout="horizontal"
+              icons={[ClipboardCheck, Calendar, ListTodo]}
+              title="Ingen oppgaver enda"
+              description="Lag oppgaver i feltet over. Her legges oppgaver som må gjøres."
+              noBorder
+            />
           ) : (
             <>
               <div className="border rounded divide-y">
@@ -359,11 +376,19 @@ export function ActivityLog({
         </div>
 
         <div className="bg-background rounded p-4">
-          <h3 className="text-sm font-medium mb-2">Siste nytt:</h3>
+          {recentActivities.length > 0 && (
+            <h3 className="text-sm font-medium mb-2">Siste nytt:</h3>
+          )}
           {isLoadingRecentActivities && recentActivities.length === 0 ? (
             <div className="p-3 text-sm text-muted-foreground">Laster...</div>
           ) : recentActivities.length === 0 ? (
-            <div className="border rounded p-3 text-sm text-muted-foreground">Ingen</div>
+            <EmptyState
+              layout="horizontal"
+              icons={[AtSign, MessageCircle, PartyPopper]}
+              title="Ingen hendelser enda"
+              description="Her logges e-poster, kommentarer og fullførte oppgaver."
+              noBorder
+            />
           ) : (
             <>
               <div className="border rounded divide-y">

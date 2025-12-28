@@ -34,9 +34,9 @@ describe("ContactCompaniesSection", () => {
     expect(screen.getByText(/1\.1\.2020 - 31\.12\.2023/)).toBeDefined();
   });
 
-  it("renders 'Ingen' when no previous companies", () => {
-    render(<ContactCompaniesSection previousCompanies={[]} />);
+  it("renders nothing when no previous companies", () => {
+    const { container } = render(<ContactCompaniesSection previousCompanies={[]} />);
 
-    expect(screen.getByText("Ingen")).toBeDefined();
+    expect(container.firstChild).toBeNull();
   });
 });

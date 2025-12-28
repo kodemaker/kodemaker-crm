@@ -1,9 +1,11 @@
 "use client";
 import { useState } from "react";
 import { useSWRConfig } from "swr";
+import { ClipboardCheck, Calendar, ListTodo, CheckCircle2, Trophy, Sparkles } from "lucide-react";
 import { FollowupItem as FollowupItemComponent } from "@/components/activity-log/followup-item";
 import type { FollowupItemData } from "@/components/activity-log/followup-item";
 import { EditFollowupDialog } from "@/components/dialogs/edit-followup-dialog";
+import { EmptyState } from "@/components/ui/empty-state";
 import { SimplePagination } from "@/components/pagination/simple-pagination";
 import { usePagination } from "@/hooks/use-pagination";
 
@@ -38,48 +40,68 @@ export function FollowupsList({
     return <div className="p-3 text-sm text-muted-foreground">Laster…</div>;
   }
 
+  // Empty state
+  if (data.length === 0) {
+    if (variant === "action") {
+      return (
+        <div className="mt-3">
+          <EmptyState
+            icons={[ClipboardCheck, Calendar, ListTodo]}
+            title="Ingen oppgaver som må gjøres"
+            description="Er du så handlekraftig at du er ferdig med alt? Prøv å justere filteret eller opprett en oppgave fra en kontakt, organisasjon eller lead."
+          />
+        </div>
+      );
+    }
+    return (
+      <div className="mt-3">
+        <EmptyState
+          icons={[CheckCircle2, Trophy, Sparkles]}
+          title="Ingen fullførte oppgaver enda"
+          description={"Når du markerer oppgaver som ferdig, vises de her.\nKom i gang!"}
+        />
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="border rounded divide-y mt-3">
-        {data.length ? (
-          data.map((f) => (
-            <FollowupItemComponent
-              key={f.id}
-              followup={f}
-              variant={variant}
-              showBadge={false}
-              entityLinks={true}
-              onComplete={
-                variant === "action"
-                  ? async (id: number) => {
-                      const res = await fetch(`/api/followups/${id}`, {
-                        method: "PATCH",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          completedAt: new Date().toISOString(),
-                        }),
-                      });
-                      if (res.ok) {
-                        await mutate();
-                        await globalMutate(
-                          (key) => typeof key === "string" && key.startsWith("/api/followups")
-                        );
-                        onCompleted?.();
-                      }
+        {data.map((f) => (
+          <FollowupItemComponent
+            key={f.id}
+            followup={f}
+            variant={variant}
+            showBadge={false}
+            entityLinks={true}
+            onComplete={
+              variant === "action"
+                ? async (id: number) => {
+                    const res = await fetch(`/api/followups/${id}`, {
+                      method: "PATCH",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        completedAt: new Date().toISOString(),
+                      }),
+                    });
+                    if (res.ok) {
+                      await mutate();
+                      await globalMutate(
+                        (key) => typeof key === "string" && key.startsWith("/api/followups")
+                      );
+                      onCompleted?.();
                     }
-                  : undefined
-              }
-              onClick={() => {
-                setSelectedFollowup(f);
-                setEditDialogOpen(true);
-              }}
-            />
-          ))
-        ) : (
-          <div className="p-3 text-sm text-muted-foreground">Ingen</div>
-        )}
+                  }
+                : undefined
+            }
+            onClick={() => {
+              setSelectedFollowup(f);
+              setEditDialogOpen(true);
+            }}
+          />
+        ))}
       </div>
-      {data.length > 0 && totalPages > 1 && (
+      {totalPages > 1 && (
         <SimplePagination
           currentPage={currentPage}
           totalPages={totalPages}

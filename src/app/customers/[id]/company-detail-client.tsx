@@ -1,5 +1,6 @@
 "use client";
 import useSWR from "swr";
+import { useState } from "react";
 import { useParams } from "next/navigation";
 import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
 import { CreatedBy } from "@/components/created-by";
@@ -14,6 +15,7 @@ export function CompanyDetailClient() {
   const params = useParams<{ id: string }>();
   const id = Number(params.id);
   const { data } = useSWR<GetCompanyDetailResponse>(id ? `/api/companies/${id}` : null);
+  const [newLeadDialogOpen, setNewLeadDialogOpen] = useState(false);
 
   if (!data) return <div className="p-6">Laster...</div>;
   const { company, contacts, leads } = data;
@@ -34,6 +36,19 @@ export function CompanyDetailClient() {
       <LeadsSection
         leads={leads}
         headerAction={<NewLeadDialog companyId={company.id} companyName={company.name} />}
+        emptyStateAction={{
+          label: "Legg til lead",
+          onClick: () => setNewLeadDialogOpen(true),
+        }}
+      />
+
+      {/* Controlled dialog for empty state action */}
+      <NewLeadDialog
+        companyId={company.id}
+        companyName={company.name}
+        trigger={null}
+        open={newLeadDialogOpen}
+        onOpenChange={setNewLeadDialogOpen}
       />
 
       <ActivityLog

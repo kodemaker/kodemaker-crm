@@ -41,7 +41,19 @@ describe("LeadsSection", () => {
 
   it("renders empty state when no leads", () => {
     render(<LeadsSection leads={[]} />);
-    expect(screen.getByText("Ingen")).toBeDefined();
+    expect(screen.getByText("Ingen leads enda")).toBeDefined();
+    expect(screen.getByText("Er det noe du kan gjøre for å endre dette?")).toBeDefined();
+  });
+
+  it("renders empty state with action button when provided", () => {
+    const handleClick = vi.fn();
+    render(
+      <LeadsSection
+        leads={[]}
+        emptyStateAction={{ label: "Legg til lead", onClick: handleClick }}
+      />
+    );
+    expect(screen.getByText("Legg til lead")).toBeDefined();
   });
 
   it("renders header action when provided", () => {

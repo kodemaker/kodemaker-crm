@@ -2,7 +2,8 @@
 import useSWR, { useSWRConfig } from "swr";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Check, ChevronsUpDown, Info, Plus, Save, X } from "lucide-react";
+import { Check, ChevronsUpDown, Info, Plus, Save } from "lucide-react";
+import { ClearFilterButton } from "@/components/filters/clear-filter-button";
 import {
   Dialog,
   DialogContent,
@@ -363,29 +364,7 @@ export function NewLeadDialog({
                               : "Velg kontakt"}
                           </span>
                           {selectedContact && !isContactDisabled ? (
-                            <span
-                              className="ml-1 inline-flex cursor-pointer hover:text-destructive"
-                              role="button"
-                              tabIndex={0}
-                              onPointerDown={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                              }}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                handleClearContact();
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  handleClearContact();
-                                }
-                              }}
-                            >
-                              <X className="h-4 w-4" />
-                            </span>
+                            <ClearFilterButton onClear={handleClearContact} />
                           ) : (
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           )}
@@ -504,29 +483,7 @@ export function NewLeadDialog({
                             {selectedCompany?.name || "Velg organisasjon"}
                           </span>
                           {selectedCompany && !isCompanyDisabled ? (
-                            <span
-                              className="ml-1 inline-flex cursor-pointer hover:text-destructive"
-                              role="button"
-                              tabIndex={0}
-                              onPointerDown={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                              }}
-                              onClick={(e) => {
-                                e.preventDefault();
-                                e.stopPropagation();
-                                handleClearCompany();
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === "Enter" || e.key === " ") {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  handleClearCompany();
-                                }
-                              }}
-                            >
-                              <X className="h-4 w-4" />
-                            </span>
+                            <ClearFilterButton onClear={handleClearCompany} />
                           ) : (
                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                           )}

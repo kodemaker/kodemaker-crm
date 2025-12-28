@@ -11,7 +11,8 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
-import { Check, ChevronsUpDown, Plus, X } from "lucide-react";
+import { Check, ChevronsUpDown, Plus } from "lucide-react";
+import { ClearFilterButton } from "@/components/filters/clear-filter-button";
 import { cn, truncateText } from "@/lib/utils";
 import { QuickLeadDialog } from "@/components/dialogs/quick-lead-dialog";
 import { NewLeadDialog } from "@/components/dialogs/new-lead-dialog";
@@ -91,31 +92,10 @@ export function LeadSelector({
               {selectedLead ? truncateText(selectedLead.description, 60) : "Velg lead…"}
             </span>
             {selectedLead ? (
-              <span
-                className="ml-1 inline-flex cursor-pointer hover:text-destructive"
-                role="button"
-                tabIndex={0}
-                onPointerDown={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }}
-                onClick={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  onSelect(null);
-                  onQueryChange("");
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    onSelect(null);
-                    onQueryChange("");
-                  }
-                }}
-              >
-                <X className="h-4 w-4" />
-              </span>
+              <ClearFilterButton onClear={() => {
+                onSelect(null);
+                onQueryChange("");
+              }} />
             ) : (
               <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
             )}

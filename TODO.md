@@ -2,13 +2,10 @@
 
 - Incoming Mail: FWD: Lag noe logikk som sjekker om to-adresse er @kodemaker.no.
 - Incoming Mail: FWD: insert crmUser hvis det ikke finnes og @kodemaker.no
-- Ny kontakt: Ikke bruk legacy email!
 
 ## Features
 
-- ? Hendelseslogg: Bør kanskje ha created by?
 - Flere slette-knapper. Email, kommentar, lead, oppfølging, kunde
-  v En kontakt må kunne ha flere eposter.
 
 ## PROD Deployment
 
@@ -30,12 +27,6 @@
   - Problem: Lokale typer (f.eks. `type Company` i `CustomersPage`) kan divergere fra `ApiCompany`.
   - Forslag: Innfør utvidelser som `type CompanyWithCounts = ApiCompany & { leadCounts?: ... }` i stedet for helt egne typer.
   - Gevinst: Sterkere sammenheng mellom API og frontend, tryggere refaktorering.
-
-- TODO Samkjøre event-typer (entity) på tvers av DB, backend og frontend.
-
-  - Problem: `eventEntityEnum` (DB), `EventEntity` i `src/db/events.ts` og `Event`-typen i `src/app/events/page.tsx` må manuelt holdes i sync.
-  - Forslag: Definer en felles `EventEntity`/konstantkilde ett sted og importer den i API + UI.
-  - Gevinst: Mindre risiko for staving/enum-avvik og runtime-feil.
 
 - TODO Ekstrahere hook for å fullføre oppfølginger (PATCH + mutate).
 

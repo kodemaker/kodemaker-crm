@@ -88,8 +88,6 @@ sequenceDiagram
     Browser->>Browser: Remove highlight after 10s
 ```
 
-![SSE Flow Diagram](images/sse-flow.png)
-
 ## Database Schema
 
 ```mermaid
@@ -115,8 +113,6 @@ erDiagram
     companies ||--o| activity_events : "CASCADE"
     contacts ||--o| activity_events : "CASCADE"
 ```
-
-![Database Schema](images/db-schema.png)
 
 ## Schema Design Decisions
 
@@ -234,8 +230,6 @@ flowchart LR
     end
 ```
 
-![Event Types and Their Data](images/event-types.png)
-
 ## Component Architecture
 
 ```mermaid
@@ -271,8 +265,6 @@ flowchart TD
     E --> I
     F --> I
 ```
-
-![Component Architecture](images/component-architecture.png)
 
 ## API Endpoints
 

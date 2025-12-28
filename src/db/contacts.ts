@@ -127,9 +127,24 @@ export async function getContactDetail(id: number) {
   };
 }
 
-export async function listContacts(query: string | null) {
+export async function listContacts(query: string | null, companyId?: number | null) {
   const isSearch = query && query.trim().length >= 1;
   const limit = isSearch ? 200 : 100;
+
+  // Build filter conditions
+  const filterConditions = [];
+  if (isSearch) {
+    filterConditions.push(
+      or(
+        ilike(contacts.firstName, `%${query}%`),
+        ilike(contacts.lastName, `%${query}%`),
+        ilike(companies.name, `%${query}%`)
+      )
+    );
+  }
+  if (companyId) {
+    filterConditions.push(eq(contactCompanyHistory.companyId, companyId));
+  }
 
   // First, get the basic contact info with company
   const baseContacts = await db
@@ -146,21 +161,19 @@ export async function listContacts(query: string | null) {
       and(eq(contactCompanyHistory.contactId, contacts.id), isNull(contactCompanyHistory.endDate))
     )
     .leftJoin(companies, eq(companies.id, contactCompanyHistory.companyId))
-    .where(
-      isSearch
-        ? or(
-            ilike(contacts.firstName, `%${query}%`),
-            ilike(contacts.lastName, `%${query}%`),
-            ilike(companies.name, `%${query}%`)
-          )
-        : undefined
-    )
+    .where(filterConditions.length > 0 ? and(...filterConditions) : undefined)
     .orderBy(asc(contacts.firstName), asc(contacts.lastName))
     .limit(limit);
 
   // If searching, also get contacts that match by email from contact_emails table
   let emailMatchContacts: typeof baseContacts = [];
   if (isSearch) {
+    // Build email filter conditions
+    const emailFilterConditions = [ilike(contactEmails.email, `%${query}%`)];
+    if (companyId) {
+      emailFilterConditions.push(eq(contactCompanyHistory.companyId, companyId));
+    }
+
     emailMatchContacts = await db
       .select({
         id: contacts.id,
@@ -176,7 +189,7 @@ export async function listContacts(query: string | null) {
         and(eq(contactCompanyHistory.contactId, contacts.id), isNull(contactCompanyHistory.endDate))
       )
       .leftJoin(companies, eq(companies.id, contactCompanyHistory.companyId))
-      .where(ilike(contactEmails.email, `%${query}%`))
+      .where(and(...emailFilterConditions))
       .orderBy(asc(contacts.firstName), asc(contacts.lastName))
       .limit(limit);
   }

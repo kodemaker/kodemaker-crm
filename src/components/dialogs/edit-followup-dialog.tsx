@@ -1,8 +1,8 @@
 "use client";
-import useSWR, { useSWRConfig } from "swr";
+import { useSWRConfig } from "swr";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { ChevronsUpDown, Save, Trash2 } from "lucide-react";
+import { Save, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import {
   Form,
@@ -13,14 +13,6 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import {
-  Command,
-  CommandEmpty,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
 import { DatePicker } from "@/components/ui/date-picker";
 import { toast } from "sonner";
 import { z } from "zod";
@@ -28,12 +20,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import type { FollowupItemData } from "@/components/activity-log/followup-item";
 import { Switch } from "@/components/ui/switch";
-
-type User = {
-  id: number;
-  firstName: string;
-  lastName: string;
-};
+import { UserSelect, type UserOption } from "@/components/selects/user-select";
 
 export interface EditFollowupDialogProps {
   followup: FollowupItemData | null;
@@ -66,22 +53,9 @@ export function EditFollowupDialog({ followup, open, onOpenChange, onDelete, onU
     },
   });
 
-  const [userPopoverOpen, setUserPopoverOpen] = useState(false);
-  const [userQuery, setUserQuery] = useState("");
-  const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [selectedUser, setSelectedUser] = useState<UserOption | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const { mutate: globalMutate } = useSWRConfig();
-
-  const { data: users } = useSWR<User[]>(`/api/users`);
-
-  const filteredUsers =
-    users?.filter(
-      (u) =>
-        !userQuery ||
-        u.firstName.toLowerCase().includes(userQuery.toLowerCase()) ||
-        u.lastName.toLowerCase().includes(userQuery.toLowerCase()) ||
-        `${u.firstName} ${u.lastName}`.toLowerCase().includes(userQuery.toLowerCase())
-    ) ?? [];
 
   useEffect(() => {
     if (followup && open) {
@@ -226,52 +200,14 @@ export function EditFollowupDialog({ followup, open, onOpenChange, onDelete, onU
               render={() => (
                 <FormItem>
                   <FormLabel>Tildel</FormLabel>
-                  <Popover open={userPopoverOpen} onOpenChange={setUserPopoverOpen}>
-                    <PopoverTrigger asChild>
-                      <Button type="button" variant="outline" className="w-full justify-between">
-                        {selectedUser
-                          ? `${selectedUser.firstName} ${selectedUser.lastName}`
-                          : "Velg bruker..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="p-0 w-[var(--radix-popover-trigger-width)]">
-                      <Command>
-                        <CommandInput
-                          autoFocus
-                          placeholder="Søk bruker..."
-                          value={userQuery}
-                          onValueChange={setUserQuery}
-                        />
-                        <CommandList>
-                          <CommandEmpty>Ingen treff</CommandEmpty>
-                          <CommandItem
-                            value=""
-                            onSelect={() => {
-                              setSelectedUser(null);
-                              form.setValue("assignedToUserId", null);
-                              setUserPopoverOpen(false);
-                            }}
-                          >
-                            Ingen
-                          </CommandItem>
-                          {filteredUsers.map((u) => (
-                            <CommandItem
-                              key={u.id}
-                              value={`${u.firstName} ${u.lastName}`}
-                              onSelect={() => {
-                                setSelectedUser(u);
-                                form.setValue("assignedToUserId", u.id);
-                                setUserPopoverOpen(false);
-                              }}
-                            >
-                              {u.firstName} {u.lastName}
-                            </CommandItem>
-                          ))}
-                        </CommandList>
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
+                  <UserSelect
+                    value={selectedUser}
+                    onChange={(user) => {
+                      setSelectedUser(user);
+                      form.setValue("assignedToUserId", user?.id ?? null);
+                    }}
+                    placeholder="Velg bruker..."
+                  />
                   <FormMessage />
                 </FormItem>
               )}

@@ -7,9 +7,9 @@ import { requireApiAuth } from "@/lib/require-api-auth";
 import { createActivityEventLeadCreated } from "@/db/activity-events";
 
 const createLeadSchema = z.object({
-  companyId: z.number().int(),
+  companyId: z.number().int({ message: "Organisasjon er påkrevd" }),
   contactId: z.number().int().optional(),
-  description: z.string().min(1),
+  description: z.string().min(1, "Beskrivelse er påkrevd"),
   potentialValue: z.number().int().nullable().optional(),
   status: z.enum(["NEW", "IN_PROGRESS", "ON_HOLD", "LOST", "WON", "BORTFALT"]).optional(),
 });

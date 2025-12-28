@@ -27,6 +27,7 @@ import { EditCommentDialog } from "@/components/dialogs/edit-comment-dialog";
 import type { FollowupItemData } from "@/components/activity-log/followup-item";
 import { getDefaultDueDate } from "@/lib/utils";
 import { useSession } from "next-auth/react";
+import { toast } from "sonner";
 
 type FollowupItemType = {
   id: number;
@@ -185,15 +186,23 @@ export function ActivityLog({
       ...(companyId ? { companyId } : {}),
       ...(leadId ? { leadId } : selectedLead ? { leadId: selectedLead.id } : {}),
     };
-    const res = await fetch("/api/comments", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    if (res.ok) {
+    try {
+      const res = await fetch("/api/comments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        toast.error("Kunne ikke lagre kommentar");
+        return;
+      }
+      toast.success("Kommentar lagret");
       setNewComment("");
       setSelectedLead(null);
       await mutateRecentActivities();
+    } catch (error) {
+      console.error("Failed to save comment:", error);
+      toast.error("Kunne ikke lagre kommentar");
     }
   }
 
@@ -207,29 +216,45 @@ export function ActivityLog({
       ...(selectedUser ? { assignedToUserId: selectedUser.id } : {}),
       ...(leadId ? { leadId } : selectedLead ? { leadId: selectedLead.id } : {}),
     };
-    const res = await fetch("/api/followups", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    if (res.ok) {
+    try {
+      const res = await fetch("/api/followups", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        toast.error("Kunne ikke lagre oppgave");
+        return;
+      }
+      toast.success("Oppgave lagret");
       setNewFollowupNote("");
       setNewFollowupDue(getDefaultDueDate());
       setSelectedUser(null);
       setSelectedLead(null);
       await mutateOpenFollowups();
+    } catch (error) {
+      console.error("Failed to save followup:", error);
+      toast.error("Kunne ikke lagre oppgave");
     }
   }
 
   async function completeFollowup(followupId: number) {
-    const res = await fetch(`/api/followups/${followupId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ completedAt: new Date().toISOString() }),
-    });
-    if (res.ok) {
+    try {
+      const res = await fetch(`/api/followups/${followupId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ completedAt: new Date().toISOString() }),
+      });
+      if (!res.ok) {
+        toast.error("Kunne ikke fullføre oppgave");
+        return;
+      }
+      toast.success("Oppgave fullført");
       await mutateOpenFollowups();
       await mutateRecentActivities();
+    } catch (error) {
+      console.error("Failed to complete followup:", error);
+      toast.error("Kunne ikke fullføre oppgave");
     }
   }
 

@@ -32,7 +32,6 @@ export interface UserSelectProps {
  * - Fetches all users on open
  * - Alphabetical sorting by full name
  * - NO create option (users are managed externally)
- * - NO "Ingen" option (use allowClear for clearing)
  */
 export function UserSelect({
   value,
@@ -44,9 +43,7 @@ export function UserSelect({
 }: UserSelectProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
 
-  const { data: users } = useSWR<UserOption[]>(
-    popoverOpen ? "/api/users" : null
-  );
+  const { data: users } = useSWR<UserOption[]>(popoverOpen ? "/api/users" : null);
 
   function getFullName(user: UserOption): string {
     return `${user.firstName} ${user.lastName}`;

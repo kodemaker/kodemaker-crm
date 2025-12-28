@@ -65,7 +65,6 @@ export interface SearchableSelectProps<T> {
  * - Alphabetical sorting
  * - Optional "Lag ny" create button
  * - Type-to-search keyboard navigation
- * - Follows the user-filter.tsx pattern with CommandGroup + CommandSeparator
  */
 export function SearchableSelect<T>({
   items,
@@ -138,9 +137,7 @@ export function SearchableSelect<T>({
           className={cn("w-full justify-between", className)}
           onKeyDown={handleTriggerKeyDown}
         >
-          <span className="truncate flex-1 min-w-0 text-left">
-            {selectedLabel || placeholder}
-          </span>
+          <span className="truncate flex-1 min-w-0 text-left">{selectedLabel || placeholder}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -161,10 +158,7 @@ export function SearchableSelect<T>({
             {allowCreate && (
               <>
                 <CommandGroup>
-                  <CommandItem
-                    value="__create_new__"
-                    onSelect={handleCreateClick}
-                  >
+                  <CommandItem value="__create_new__" onSelect={handleCreateClick}>
                     <Plus className="mr-2 h-4 w-4" />
                     {createLabel}
                   </CommandItem>
@@ -181,9 +175,7 @@ export function SearchableSelect<T>({
                 </CommandItem>
               )}
               {items && items.length === 0 ? (
-                <div className="py-2 px-2 text-sm text-muted-foreground">
-                  {emptyListMessage}
-                </div>
+                <div className="py-2 px-2 text-sm text-muted-foreground">{emptyListMessage}</div>
               ) : (
                 filteredItems.map((item) => {
                   const itemValue = getValue(item);

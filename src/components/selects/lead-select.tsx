@@ -39,7 +39,6 @@ export interface LeadSelectProps {
  *
  * Features:
  * - Fetches leads filtered by company/contact
- * - NO "Ingen" option
  * - Optional "Lag ny" inline creation (requires companyId)
  * - Auto-selects newly created lead
  */

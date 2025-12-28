@@ -93,13 +93,11 @@ export function NewContactDialog({
   } | null>(null);
   const [createCompanyDialogOpen, setCreateCompanyDialogOpen] = useState(false);
 
-  // Fetch all companies when dropdown opens (local filtering)
   const { data: allCompanies } = useSWR<Company[]>(
     companyOpen ? "/api/companies" : null
   );
   const { mutate: globalMutate } = useSWRConfig();
 
-  // Filter companies locally based on query
   const filteredCompanies = useMemo(() => {
     if (!allCompanies) return [];
     if (!companyQuery.trim()) return allCompanies;
@@ -109,7 +107,6 @@ export function NewContactDialog({
     );
   }, [allCompanies, companyQuery]);
 
-  // Reset form state when dialog opens (Bug #4 fix)
   useEffect(() => {
     if (dialogOpen) {
       if (companyId) {
@@ -131,7 +128,6 @@ export function NewContactDialog({
   }
 
   function handleCompanyCreated(newCompany: { id: number; name: string }) {
-    // Select the newly created company (Bug #3: only close QuickCompanyDialog, not parent)
     setSelectedCompany({ id: newCompany.id, name: newCompany.name });
     form.setValue("companyId", newCompany.id);
     setCreateCompanyDialogOpen(false);
@@ -148,8 +144,6 @@ export function NewContactDialog({
     toast.success("Kontakt opprettet");
     form.reset();
     const idToRefresh = selectedCompany?.id ?? companyId;
-    
-    // Refresh both contacts list and company detail (if applicable)
     await Promise.all([
       globalMutate((key) => typeof key === 'string' && key.startsWith('/api/contacts')),
       idToRefresh ? globalMutate(`/api/companies/${idToRefresh}`) : Promise.resolve(),
@@ -207,7 +201,6 @@ export function NewContactDialog({
                     open={companyOpen}
                     onOpenChange={(open) => {
                       setCompanyOpen(open);
-                      // Bug #5: Reset query when closing to clear selection state
                       if (!open) setCompanyQuery("");
                     }}
                   >
@@ -251,8 +244,9 @@ export function NewContactDialog({
                           }}
                         />
                         <CommandList>
-                          <CommandEmpty>Ingen treff</CommandEmpty>
-                          {/* Create shortcut */}
+                          {allCompanies && allCompanies.length > 0 && (
+                            <CommandEmpty>Ingen treff</CommandEmpty>
+                          )}
                           <CommandGroup>
                             <CommandItem
                               value="__create_new__"
@@ -263,31 +257,36 @@ export function NewContactDialog({
                             </CommandItem>
                           </CommandGroup>
                           <CommandSeparator />
-                          {/* Companies list */}
                           <CommandGroup heading="Organisasjoner">
-                            {filteredCompanies.map((c) => (
-                              <CommandItem
-                                key={c.id}
-                                value={c.name}
-                                onSelect={() => {
-                                  setSelectedCompany({
-                                    id: c.id,
-                                    name: c.name,
-                                  });
-                                  form.setValue("companyId", c.id);
-                                  setCompanyOpen(false);
-                                  setCompanyQuery("");
-                                }}
-                              >
-                                {c.name}
-                                <Check
-                                  className={cn(
-                                    "ml-auto h-4 w-4",
-                                    selectedCompany?.id === c.id ? "opacity-100" : "opacity-0"
-                                  )}
-                                />
-                              </CommandItem>
-                            ))}
+                            {allCompanies && allCompanies.length === 0 ? (
+                              <div className="py-2 px-2 text-sm text-muted-foreground">
+                                Ingen laget enda
+                              </div>
+                            ) : (
+                              filteredCompanies.map((c) => (
+                                <CommandItem
+                                  key={c.id}
+                                  value={c.name}
+                                  onSelect={() => {
+                                    setSelectedCompany({
+                                      id: c.id,
+                                      name: c.name,
+                                    });
+                                    form.setValue("companyId", c.id);
+                                    setCompanyOpen(false);
+                                    setCompanyQuery("");
+                                  }}
+                                >
+                                  {c.name}
+                                  <Check
+                                    className={cn(
+                                      "ml-auto h-4 w-4",
+                                      selectedCompany?.id === c.id ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                </CommandItem>
+                              ))
+                            )}
                           </CommandGroup>
                         </CommandList>
                       </Command>

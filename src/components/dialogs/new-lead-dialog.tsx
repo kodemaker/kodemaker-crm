@@ -2,7 +2,7 @@
 import useSWR, { useSWRConfig } from "swr";
 import { ReactNode, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Check, ChevronsUpDown, Plus, Save, X } from "lucide-react";
+import { Check, ChevronsUpDown, Info, Plus, Save, X } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -36,6 +36,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { QuickCompanyDialog } from "@/components/dialogs/quick-company-dialog";
 import { QuickContactDialog } from "@/components/dialogs/quick-contact-dialog";
 
@@ -85,22 +86,18 @@ export function NewLeadDialog({
   const isControlled = open !== undefined;
   const dialogOpen = isControlled ? open : internalOpen;
 
-  // Company dropdown state
   const [cOpen, setCOpen] = useState(false);
   const [companyQuery, setCompanyQuery] = useState("");
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [createCompanyDialogOpen, setCreateCompanyDialogOpen] = useState(false);
 
-  // Contact dropdown state
   const [kOpen, setKOpen] = useState(false);
   const [contactQuery, setContactQuery] = useState("");
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [createContactDialogOpen, setCreateContactDialogOpen] = useState(false);
 
-  // Fetch all companies when dropdown opens (local filtering)
   const { data: allCompanies } = useSWR<Company[]>(cOpen ? "/api/companies" : null);
 
-  // Fetch contacts when dropdown opens - filtered by company if one is selected
   const contactApiUrl = kOpen
     ? selectedCompany?.id
       ? `/api/contacts?companyId=${selectedCompany.id}`
@@ -108,14 +105,12 @@ export function NewLeadDialog({
     : null;
   const { data: allContacts } = useSWR<Contact[]>(contactApiUrl);
 
-  // Fetch contact details when a contact is selected (to get their company)
   const { data: selectedContactDetails } = useSWR<{
     currentCompany: { id: number; name: string } | null;
   }>(selectedContact?.id ? `/api/contacts/${selectedContact.id}` : null);
 
   const { mutate: globalMutate } = useSWRConfig();
 
-  // Filter companies locally
   const filteredCompanies = useMemo(() => {
     if (!allCompanies) return [];
     if (!companyQuery.trim()) return allCompanies;
@@ -123,7 +118,6 @@ export function NewLeadDialog({
     return allCompanies.filter((c) => c.name.toLowerCase().includes(lowerQuery));
   }, [allCompanies, companyQuery]);
 
-  // Filter contacts locally
   const filteredContacts = useMemo(() => {
     if (!allContacts) return [];
     if (!contactQuery.trim()) return allContacts;
@@ -136,15 +130,12 @@ export function NewLeadDialog({
     );
   }, [allContacts, contactQuery]);
 
-  // Reset form when dialog opens
   useEffect(() => {
     if (dialogOpen) {
-      // Reset form state
       form.reset();
       setCompanyQuery("");
       setContactQuery("");
 
-      // Initialize from props if provided
       if (companyId) {
         form.setValue("companyId", companyId);
         setSelectedCompany({ id: companyId, name: companyName || "" });
@@ -166,11 +157,9 @@ export function NewLeadDialog({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dialogOpen, companyId, companyName, contactId, contactName]);
 
-  // Auto-fill company when contact has a current company
   useEffect(() => {
     const cc = selectedContactDetails?.currentCompany;
     if (cc && !companyId) {
-      // Only auto-fill if not pre-set from props
       form.setValue("companyId", cc.id);
       setSelectedCompany({ id: cc.id, name: cc.name });
     }
@@ -203,7 +192,6 @@ export function NewLeadDialog({
   function handleClearContact() {
     setSelectedContact(null);
     form.setValue("contactId", undefined);
-    // Also clear company if it was auto-filled from the contact
     if (!companyId) {
       setSelectedCompany(null);
       form.setValue("companyId", undefined);
@@ -225,8 +213,6 @@ export function NewLeadDialog({
     });
     if (!res.ok) return toast.error("Kunne ikke opprette lead");
 
-    // If contact was selected, has no current company, and we selected a company,
-    // auto-create the contactCompanyHistory entry
     if (selectedContact && !selectedContactDetails?.currentCompany && selectedCompany) {
       await fetch("/api/contact-company-history", {
         method: "POST",
@@ -242,7 +228,6 @@ export function NewLeadDialog({
     toast.success("Lead opprettet");
     form.reset();
 
-    // Refresh relevant lists
     const refreshCompanyId = selectedCompany?.id ?? companyId;
     const refreshContactId = selectedContact?.id ?? contactId;
     await Promise.all([
@@ -257,12 +242,14 @@ export function NewLeadDialog({
     handleOpenChange(false);
   }
 
-  // Determine disabled states based on context
-  // Company is disabled if:
-  // 1. companyId prop is passed (pre-set from parent)
-  // 2. Selected contact has a current company (must use their company)
   const isCompanyDisabled = !!companyId || !!selectedContactDetails?.currentCompany;
   const isContactDisabled = !!contactId;
+  const companyDisabledReason = selectedContactDetails?.currentCompany
+    ? "Organisasjon settes fra kontaktens nåværende selskap"
+    : companyId
+      ? "Organisasjon er forhåndsvalgt"
+      : null;
+  const contactDisabledReason = contactId ? "Kontakt er forhåndsvalgt" : null;
 
   return (
     <Dialog open={dialogOpen} onOpenChange={handleOpenChange}>
@@ -331,13 +318,24 @@ export function NewLeadDialog({
             </div>
 
             <div className="grid grid-cols-2 gap-x-5 gap-y-6">
-              {/* Contact dropdown */}
               <FormField
                 control={form.control}
                 name="contactId"
                 render={() => (
                   <FormItem>
-                    <FormLabel>Kontakt</FormLabel>
+                    <FormLabel className="inline-flex items-center gap-1">
+                      Kontakt
+                      {contactDisabledReason && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            {contactDisabledReason}
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </FormLabel>
                     <Popover open={kOpen} onOpenChange={setKOpen}>
                       <PopoverTrigger asChild>
                         <Button
@@ -407,8 +405,9 @@ export function NewLeadDialog({
                             }}
                           />
                           <CommandList>
-                            <CommandEmpty>Ingen treff</CommandEmpty>
-                            {/* Create shortcut */}
+                            {allContacts && allContacts.length > 0 && (
+                              <CommandEmpty>Ingen treff</CommandEmpty>
+                            )}
                             <CommandGroup>
                               <CommandItem
                                 value="__create_new_contact__"
@@ -419,28 +418,33 @@ export function NewLeadDialog({
                               </CommandItem>
                             </CommandGroup>
                             <CommandSeparator />
-                            {/* Contacts list */}
                             <CommandGroup heading="Kontakter">
-                              {filteredContacts.map((p) => (
-                                <CommandItem
-                                  key={p.id}
-                                  value={`${p.firstName} ${p.lastName}`}
-                                  onSelect={() => {
-                                    setSelectedContact(p);
-                                    form.setValue("contactId", p.id);
-                                    setKOpen(false);
-                                    setContactQuery("");
-                                  }}
-                                >
-                                  {p.firstName} {p.lastName}
-                                  <Check
-                                    className={cn(
-                                      "ml-auto h-4 w-4",
-                                      selectedContact?.id === p.id ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                </CommandItem>
-                              ))}
+                              {allContacts && allContacts.length === 0 ? (
+                                <div className="py-2 px-2 text-sm text-muted-foreground">
+                                  Ingen laget enda
+                                </div>
+                              ) : (
+                                filteredContacts.map((p) => (
+                                  <CommandItem
+                                    key={p.id}
+                                    value={`${p.firstName} ${p.lastName}`}
+                                    onSelect={() => {
+                                      setSelectedContact(p);
+                                      form.setValue("contactId", p.id);
+                                      setKOpen(false);
+                                      setContactQuery("");
+                                    }}
+                                  >
+                                    {p.firstName} {p.lastName}
+                                    <Check
+                                      className={cn(
+                                        "ml-auto h-4 w-4",
+                                        selectedContact?.id === p.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                  </CommandItem>
+                                ))
+                              )}
                             </CommandGroup>
                           </CommandList>
                         </Command>
@@ -457,13 +461,24 @@ export function NewLeadDialog({
                 companyId={selectedCompany?.id}
               />
 
-              {/* Company dropdown */}
               <FormField
                 control={form.control}
                 name="companyId"
                 render={() => (
                   <FormItem>
-                    <FormLabel>Organisasjon</FormLabel>
+                    <FormLabel className="inline-flex items-center gap-1">
+                      Organisasjon
+                      {companyDisabledReason && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="h-3.5 w-3.5 text-muted-foreground" />
+                          </TooltipTrigger>
+                          <TooltipContent side="top">
+                            {companyDisabledReason}
+                          </TooltipContent>
+                        </Tooltip>
+                      )}
+                    </FormLabel>
                     <Popover open={cOpen} onOpenChange={setCOpen}>
                       <PopoverTrigger asChild>
                         <Button
@@ -531,8 +546,9 @@ export function NewLeadDialog({
                             }}
                           />
                           <CommandList>
-                            <CommandEmpty>Ingen treff</CommandEmpty>
-                            {/* Create shortcut */}
+                            {allCompanies && allCompanies.length > 0 && (
+                              <CommandEmpty>Ingen treff</CommandEmpty>
+                            )}
                             <CommandGroup>
                               <CommandItem
                                 value="__create_new_company__"
@@ -543,28 +559,33 @@ export function NewLeadDialog({
                               </CommandItem>
                             </CommandGroup>
                             <CommandSeparator />
-                            {/* Companies list */}
                             <CommandGroup heading="Organisasjoner">
-                              {filteredCompanies.map((c) => (
-                                <CommandItem
-                                  key={c.id}
-                                  value={c.name}
-                                  onSelect={() => {
-                                    setSelectedCompany(c);
-                                    form.setValue("companyId", c.id);
-                                    setCOpen(false);
-                                    setCompanyQuery("");
-                                  }}
-                                >
-                                  {c.name}
-                                  <Check
-                                    className={cn(
-                                      "ml-auto h-4 w-4",
-                                      selectedCompany?.id === c.id ? "opacity-100" : "opacity-0"
-                                    )}
-                                  />
-                                </CommandItem>
-                              ))}
+                              {allCompanies && allCompanies.length === 0 ? (
+                                <div className="py-2 px-2 text-sm text-muted-foreground">
+                                  Ingen laget enda
+                                </div>
+                              ) : (
+                                filteredCompanies.map((c) => (
+                                  <CommandItem
+                                    key={c.id}
+                                    value={c.name}
+                                    onSelect={() => {
+                                      setSelectedCompany(c);
+                                      form.setValue("companyId", c.id);
+                                      setCOpen(false);
+                                      setCompanyQuery("");
+                                    }}
+                                  >
+                                    {c.name}
+                                    <Check
+                                      className={cn(
+                                        "ml-auto h-4 w-4",
+                                        selectedCompany?.id === c.id ? "opacity-100" : "opacity-0"
+                                      )}
+                                    />
+                                  </CommandItem>
+                                ))
+                              )}
                             </CommandGroup>
                           </CommandList>
                         </Command>

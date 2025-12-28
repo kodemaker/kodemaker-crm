@@ -65,34 +65,35 @@ export function QuickLeadDialog({
       status: "NEW",
     };
 
-    const res = await fetch("/api/leads", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const res = await fetch("/api/leads", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    if (!res.ok) {
-      toast.error("Kunne ikke opprette lead");
-      return;
+      if (!res.ok) {
+        toast.error("Kunne ikke opprette lead");
+        return;
+      }
+
+      const created = await res.json();
+      toast.success("Lead opprettet");
+      form.reset();
+
+      await mutate((key) => typeof key === "string" && key.startsWith("/api/leads"));
+      await mutate(`/api/companies/${companyId}`);
+      if (contactId) {
+        await mutate(`/api/contacts/${contactId}`);
+      }
+
+      onCreated({
+        id: created.id,
+        description: created.description,
+      });
+    } catch {
+      toast.error("Nettverksfeil - prøv igjen");
     }
-
-    const created = await res.json();
-    toast.success("Lead opprettet");
-    form.reset();
-
-    // Invalidate leads cache
-    await mutate((key) => typeof key === "string" && key.startsWith("/api/leads"));
-
-    // Also invalidate company and contact caches
-    await mutate(`/api/companies/${companyId}`);
-    if (contactId) {
-      await mutate(`/api/contacts/${contactId}`);
-    }
-
-    onCreated({
-      id: created.id,
-      description: created.description,
-    });
   }
 
   return (

@@ -69,34 +69,35 @@ export function QuickContactDialog({
       ...(companyId && { companyId }),
     };
 
-    const res = await fetch("/api/contacts", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
+    try {
+      const res = await fetch("/api/contacts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
-    if (!res.ok) {
-      toast.error("Kunne ikke opprette kontakt");
-      return;
+      if (!res.ok) {
+        toast.error("Kunne ikke opprette kontakt");
+        return;
+      }
+
+      const created = await res.json();
+      toast.success("Kontakt opprettet");
+      form.reset();
+
+      await mutate((key) => typeof key === "string" && key.startsWith("/api/contacts"));
+      if (companyId) {
+        await mutate(`/api/companies/${companyId}`);
+      }
+
+      onCreated({
+        id: created.id,
+        firstName: created.firstName,
+        lastName: created.lastName,
+      });
+    } catch {
+      toast.error("Nettverksfeil - prøv igjen");
     }
-
-    const created = await res.json();
-    toast.success("Kontakt opprettet");
-    form.reset();
-
-    // Invalidate contacts cache
-    await mutate((key) => typeof key === "string" && key.startsWith("/api/contacts"));
-
-    // Also invalidate company cache if we linked to a company
-    if (companyId) {
-      await mutate(`/api/companies/${companyId}`);
-    }
-
-    onCreated({
-      id: created.id,
-      firstName: created.firstName,
-      lastName: created.lastName,
-    });
   }
 
   return (

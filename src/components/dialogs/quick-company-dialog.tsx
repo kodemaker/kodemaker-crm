@@ -51,32 +51,30 @@ export function QuickCompanyDialog({
   });
 
   async function onSubmit(values: z.infer<typeof quickCompanySchema>) {
-    const res = await fetch("/api/companies", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(values),
-    });
+    try {
+      const res = await fetch("/api/companies", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(values),
+      });
 
-    if (!res.ok) {
-      toast.error("Kunne ikke opprette organisasjon");
-      return;
+      if (!res.ok) {
+        toast.error("Kunne ikke opprette organisasjon");
+        return;
+      }
+
+      const created = await res.json();
+      toast.success("Organisasjon opprettet");
+      form.reset();
+
+      await mutate((key) => typeof key === "string" && key.startsWith("/api/companies"));
+      onCreated({ id: created.id, name: created.name });
+    } catch {
+      toast.error("Nettverksfeil - prøv igjen");
     }
-
-    const created = await res.json();
-    toast.success("Organisasjon opprettet");
-    form.reset();
-
-    // Invalidate companies cache
-    await mutate((key) => typeof key === "string" && key.startsWith("/api/companies"));
-
-    // Call onCreated but DON'T call onOpenChange - let handleCompanyCreated close this dialog
-    // This prevents the parent dialog from closing via event propagation
-    onCreated({ id: created.id, name: created.name });
   }
 
   function handleOpenChange(next: boolean) {
-    // Only allow closing via onOpenChange when user clicks outside or presses escape
-    // Don't propagate when form submits successfully (onCreated handles that)
     if (!next) {
       form.reset();
     }

@@ -1,6 +1,6 @@
 "use client";
 import { useSWRConfig } from "swr";
-import { ReactNode, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Save } from "lucide-react";
 import {
@@ -26,7 +26,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 
 const companySchema = z.object({
-  name: z.string().min(1, "Skriv navn"),
+  name: z.string().min(1, "Navn er påkrevd"),
   websiteUrl: z.url({ error: "Ugyldig URL" }).optional().or(z.literal("")),
   emailDomain: z.string().optional(),
   description: z.string().optional(),
@@ -59,6 +59,13 @@ export function NewCompanyDialog({
   const [internalOpen, setInternalOpen] = useState(false);
   const isControlled = open !== undefined;
   const dialogOpen = isControlled ? open : internalOpen;
+
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (dialogOpen) {
+      form.reset();
+    }
+  }, [dialogOpen, form]);
 
   function handleOpenChange(next: boolean) {
     if (!isControlled) {
@@ -93,7 +100,7 @@ export function NewCompanyDialog({
           <DialogTitle>Ny organisasjon</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-3">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             <FormField
               control={form.control}
               name="name"

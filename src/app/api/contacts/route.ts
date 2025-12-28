@@ -6,11 +6,11 @@ import { listContacts } from "@/db/contacts";
 import { requireApiAuth } from "@/lib/require-api-auth";
 
 const createContactSchema = z.object({
-  firstName: z.string().min(1),
-  lastName: z.string().min(1),
-  email: z.string().email().optional().or(z.literal("")),
+  firstName: z.string().min(1, "Fornavn er påkrevd"),
+  lastName: z.string().min(1, "Etternavn er påkrevd"),
+  email: z.string().email({ message: "Ugyldig e-postadresse" }).optional().or(z.literal("")),
   phone: z.string().optional(),
-  linkedInUrl: z.string().url().optional().or(z.literal("")),
+  linkedInUrl: z.string().url({ message: "Ugyldig URL" }).optional().or(z.literal("")),
   description: z.string().optional(),
   companyId: z.number().int().optional(),
   role: z.string().optional(),
@@ -22,7 +22,9 @@ export async function GET(req: NextRequest) {
 
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q")?.trim() || null;
-  const data = await listContacts(q);
+  const companyIdParam = searchParams.get("companyId");
+  const companyId = companyIdParam ? parseInt(companyIdParam, 10) : null;
+  const data = await listContacts(q, companyId && !isNaN(companyId) ? companyId : null);
   return NextResponse.json(data);
 }
 

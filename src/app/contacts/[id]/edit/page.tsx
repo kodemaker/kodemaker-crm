@@ -338,7 +338,11 @@ export default function EditContactPage() {
                 <Switch
                   checked={emailItem.active}
                   onCheckedChange={(checked) =>
-                    updateEmail(emailItem.id, emailItem.email, checked)
+                    updateEmail(
+                      emailItem.id,
+                      editingEmailId === emailItem.id ? editingEmailAddress : emailItem.email,
+                      checked
+                    )
                   }
                 />
                 <button

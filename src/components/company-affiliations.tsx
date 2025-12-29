@@ -303,7 +303,7 @@ export function CompanyAffiliations({
       {/* Previous positions - read-only list */}
       {previousPositions.length > 0 && (
         <div className="space-y-2">
-          <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+          <div className="text-sm text-muted-foreground font-medium">
             Tidligere stillinger
           </div>
           <div className="border rounded-lg divide-y bg-background">

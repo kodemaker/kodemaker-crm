@@ -3,10 +3,11 @@ import useSWR, { useSWRConfig } from "swr";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
-import { GitMerge, Plus, Save, Trash2, X } from "lucide-react";
+import { GitMerge, Plus, Save, Trash2 } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { MergeContactsDialog } from "@/components/merge-contacts-dialog";
 import { CompanyAffiliations } from "@/components/company-affiliations";
+import { toast } from "sonner";
 
 type Contact = {
   id: number;
@@ -84,66 +85,93 @@ export default function EditContactPage() {
   }, [data?.contactEmails]);
 
   async function save() {
-    const res = await fetch(`/api/contacts/${id}`, {
-      method: "PATCH",
-      body: JSON.stringify({
-        firstName,
-        lastName,
-        phone,
-        linkedInUrl,
-        description,
-      }),
-    });
-    if (!res.ok) return;
-    await mutate();
-    router.push(`/contacts/${id}`);
+    try {
+      const res = await fetch(`/api/contacts/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          phone,
+          linkedInUrl,
+          description,
+        }),
+      });
+      if (!res.ok) {
+        const error = await res.json();
+        toast.error(error.error || "Kunne ikke lagre kontakt");
+        return;
+      }
+      toast.success("Kontakt lagret");
+      await mutate();
+      router.push(`/contacts/${id}`);
+    } catch (error) {
+      console.error("Failed to save contact:", error);
+      toast.error("Kunne ikke lagre kontakt");
+    }
   }
 
   async function addEmail() {
     if (!newEmailAddress.trim()) return;
 
-    const res = await fetch(`/api/contacts/${id}/emails`, {
-      method: "POST",
-      body: JSON.stringify({ email: newEmailAddress.trim(), active: true }),
-    });
+    try {
+      const res = await fetch(`/api/contacts/${id}/emails`, {
+        method: "POST",
+        body: JSON.stringify({ email: newEmailAddress.trim(), active: true }),
+      });
 
-    if (res.ok) {
-      setNewEmailAddress("");
-      await mutate();
-    } else {
-      const error = await res.json();
-      alert(error.error || "Failed to add email");
+      if (res.ok) {
+        setNewEmailAddress("");
+        toast.success("E-postadresse lagt til");
+        await mutate();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Kunne ikke legge til e-postadresse");
+      }
+    } catch (error) {
+      console.error("Failed to add email:", error);
+      toast.error("Kunne ikke legge til e-postadresse");
     }
   }
 
   async function updateEmail(emailId: number, email: string, active: boolean) {
-    const res = await fetch(`/api/contacts/${id}/emails/${emailId}`, {
-      method: "PATCH",
-      body: JSON.stringify({ email, active }),
-    });
+    try {
+      const res = await fetch(`/api/contacts/${id}/emails/${emailId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ email, active }),
+      });
 
-    if (res.ok) {
-      setEditingEmailId(null);
-      setEditingEmailAddress("");
-      await mutate();
-    } else {
-      const error = await res.json();
-      alert(error.error || "Failed to update email");
+      if (res.ok) {
+        setEditingEmailId(null);
+        setEditingEmailAddress("");
+        await mutate();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Kunne ikke oppdatere e-postadresse");
+      }
+    } catch (error) {
+      console.error("Failed to update email:", error);
+      toast.error("Kunne ikke oppdatere e-postadresse");
     }
   }
 
   async function deleteEmail(emailId: number) {
-    if (!confirm("Delete this email address?")) return;
+    if (!confirm("Slette denne e-postadressen?")) return;
 
-    const res = await fetch(`/api/contacts/${id}/emails/${emailId}`, {
-      method: "DELETE",
-    });
+    try {
+      const res = await fetch(`/api/contacts/${id}/emails/${emailId}`, {
+        method: "DELETE",
+      });
 
-    if (res.ok) {
-      await mutate();
-    } else {
-      const error = await res.json();
-      alert(error.error || "Failed to delete email");
+      if (res.ok) {
+        toast.success("E-postadresse slettet");
+        await mutate();
+      } else {
+        const error = await res.json();
+        toast.error(error.error || "Kunne ikke slette e-postadresse");
+      }
+    } catch (error) {
+      console.error("Failed to delete email:", error);
+      toast.error("Kunne ikke slette e-postadresse");
     }
   }
 
@@ -184,7 +212,7 @@ export default function EditContactPage() {
   if (!contact) return <div className="p-6">Laster…</div>;
 
   return (
-    <div className="p-6 space-y-6 max-w-xl">
+    <div className="p-6 space-y-6 max-w-2xl">
       <PageBreadcrumbs
         items={[
           { label: "Kontakter", href: "/contacts" },
@@ -246,6 +274,14 @@ export default function EditContactPage() {
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Notater om kontakten..."
             />
+          </div>
+          <div className="flex justify-end pt-2">
+            <button
+              className="px-4 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5"
+              onClick={save}
+            >
+              <Save className="h-4 w-4" /> Lagre
+            </button>
           </div>
         </div>
       </section>
@@ -342,48 +378,32 @@ export default function EditContactPage() {
         <CompanyAffiliations contactId={id} history={history} onMutate={mutate} />
       </section>
 
-      {/* Action Buttons */}
-      <div className="flex justify-between gap-2 pt-2">
-        <div className="flex gap-2">
-          <button
-            className="px-3 py-2 text-sm rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 inline-flex items-center gap-1.5"
-            onClick={async () => {
-              if (!confirm("Slette kontakt? Kommentarer, oppfølginger, e-poster og hendelser knyttet til denne kontakten vil også bli slettet. Dette kan ikke angres.")) return;
-              const res = await fetch(`/api/contacts/${id}`, {
-                method: "DELETE",
-              });
-              if (res.ok) {
-                await Promise.all([
-                  globalMutate((key) => typeof key === "string" && key.startsWith("/api/contacts")),
-                  currentCompany && globalMutate(`/api/companies/${currentCompany.id}`),
-                ]);
-                router.push(currentCompany ? `/customers/${currentCompany.id}` : "/contacts");
-              }
-            }}
-          >
-            <Trash2 className="h-4 w-4" /> Slett
-          </button>
-          <button
-            className="px-3 py-2 text-sm rounded-md bg-tertiary text-tertiary-foreground hover:bg-tertiary/90 inline-flex items-center gap-1.5"
-            onClick={() => setMergeDialogOpen(true)}
-          >
-            <GitMerge className="h-4 w-4" /> Merge inn i...
-          </button>
-        </div>
-        <div className="flex gap-2">
-          <button
-            className="px-3 py-2 text-sm border rounded-md hover:bg-accent inline-flex items-center gap-1.5"
-            onClick={() => router.push(`/contacts/${id}`)}
-          >
-            <X className="h-4 w-4" /> Avbryt
-          </button>
-          <button
-            className="px-3 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5"
-            onClick={save}
-          >
-            <Save className="h-4 w-4" /> Lagre
-          </button>
-        </div>
+      {/* Danger Zone Actions */}
+      <div className="flex gap-2 pt-2">
+        <button
+          className="px-3 py-2 text-sm rounded-md bg-destructive text-white hover:bg-destructive/90 inline-flex items-center gap-1.5"
+          onClick={async () => {
+            if (!confirm("Slette kontakt? Kommentarer, oppfølginger, e-poster og hendelser knyttet til denne kontakten vil også bli slettet. Dette kan ikke angres.")) return;
+            const res = await fetch(`/api/contacts/${id}`, {
+              method: "DELETE",
+            });
+            if (res.ok) {
+              await Promise.all([
+                globalMutate((key) => typeof key === "string" && key.startsWith("/api/contacts")),
+                currentCompany && globalMutate(`/api/companies/${currentCompany.id}`),
+              ]);
+              router.push(currentCompany ? `/customers/${currentCompany.id}` : "/contacts");
+            }
+          }}
+        >
+          <Trash2 className="h-4 w-4" /> Slett kontakt
+        </button>
+        <button
+          className="px-3 py-2 text-sm rounded-md bg-tertiary text-white hover:bg-tertiary/90 inline-flex items-center gap-1.5"
+          onClick={() => setMergeDialogOpen(true)}
+        >
+          <GitMerge className="h-4 w-4" /> Merge inn i...
+        </button>
       </div>
 
       {/* Merge Contacts Dialog */}

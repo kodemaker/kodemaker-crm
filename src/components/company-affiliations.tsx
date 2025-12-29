@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { Building2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -166,9 +167,7 @@ export function CompanyAffiliations({
               <div className="flex items-center gap-2 mb-1">
                 <Building2 className="size-4 text-muted-foreground shrink-0" />
                 <span className="font-medium">{currentPosition.company.name}</span>
-                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
-                  Nåværende
-                </span>
+                <Badge variant="secondary">Nåværende</Badge>
               </div>
               {!isEnding && (
                 <div className="text-sm text-muted-foreground ml-6">

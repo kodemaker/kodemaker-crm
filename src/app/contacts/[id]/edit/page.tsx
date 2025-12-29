@@ -212,7 +212,7 @@ export default function EditContactPage() {
   if (!contact) return <div className="p-6">Laster…</div>;
 
   return (
-    <div className="p-6 space-y-6 max-w-2xl">
+    <div className="p-6 space-y-6 max-w-2xl mx-auto">
       <PageBreadcrumbs
         items={[
           { label: "Kontakter", href: "/contacts" },
@@ -299,7 +299,7 @@ export default function EditContactPage() {
             >
               {editingEmailId === emailItem.id ? (
                 <input
-                  className="flex-1 border rounded px-3 py-1.5 text-sm"
+                  className="flex-1 border rounded-md px-3 py-1.5 text-sm bg-background"
                   value={editingEmailAddress}
                   onChange={(e) => setEditingEmailAddress(e.target.value)}
                   onKeyDown={(e) => {

@@ -3,7 +3,8 @@ import useSWR, { useSWRConfig } from "swr";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PageBreadcrumbs } from "@/components/page-breadcrumbs";
-import { Check, Edit2, GitMerge, Plus, Save, Trash2, X } from "lucide-react";
+import { GitMerge, Plus, Save, Trash2, X } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { MergeContactsDialog } from "@/components/merge-contacts-dialog";
 import { CompanyAffiliations } from "@/components/company-affiliations";
 
@@ -215,98 +216,69 @@ export default function EditContactPage() {
           <label className="block text-sm mb-1">E-postadresser</label>
           <div className="space-y-2">
             {emails.map((emailItem) => (
-              <div key={emailItem.id} className="flex items-center gap-2 p-2 border rounded">
+              <div
+                key={emailItem.id}
+                className={`flex items-center gap-3 p-3 border rounded-lg ${
+                  !emailItem.active ? "bg-muted/30" : ""
+                }`}
+              >
                 {editingEmailId === emailItem.id ? (
-                  <>
-                    <input
-                      className="flex-1 border rounded p-1 text-sm"
-                      value={editingEmailAddress}
-                      onChange={(e) => setEditingEmailAddress(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          updateEmail(emailItem.id, editingEmailAddress, emailItem.active);
-                        } else if (e.key === "Escape") {
-                          setEditingEmailId(null);
-                          setEditingEmailAddress("");
-                        }
-                      }}
-                      autoFocus
-                    />
-                    <label className="flex items-center text-sm">
-                      <input
-                        type="checkbox"
-                        checked={emailItem.active}
-                        onChange={(e) =>
-                          updateEmail(emailItem.id, editingEmailAddress, e.target.checked)
-                        }
-                        className="mr-1"
-                      />
-                      Aktiv
-                    </label>
-                    <button
-                      onClick={() =>
-                        updateEmail(emailItem.id, editingEmailAddress, emailItem.active)
-                      }
-                      className="text-green-600 hover:text-green-700"
-                    >
-                      <Check className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={() => {
+                  <input
+                    className="flex-1 border rounded px-3 py-1.5 text-sm bg-background"
+                    value={editingEmailAddress}
+                    onChange={(e) => setEditingEmailAddress(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        updateEmail(emailItem.id, editingEmailAddress, emailItem.active);
+                      } else if (e.key === "Escape") {
                         setEditingEmailId(null);
                         setEditingEmailAddress("");
-                      }}
-                      className="text-gray-500 hover:text-gray-700"
-                    >
-                      <X className="h-4 w-4" />
-                    </button>
-                  </>
+                      }
+                    }}
+                    onBlur={() => {
+                      if (editingEmailAddress !== emailItem.email) {
+                        updateEmail(emailItem.id, editingEmailAddress, emailItem.active);
+                      } else {
+                        setEditingEmailId(null);
+                        setEditingEmailAddress("");
+                      }
+                    }}
+                    autoFocus
+                  />
                 ) : (
-                  <>
-                    <span className="flex-1 text-sm">{emailItem.email}</span>
-                    <span
-                      className={`text-xs px-2 py-0.5 rounded ${
-                        emailItem.active
-                          ? "bg-green-100 text-green-700"
-                          : "bg-gray-100 text-gray-600"
-                      }`}
-                    >
-                      {emailItem.active ? "Aktiv" : "Inaktiv"}
-                    </span>
-                    <button
-                      onClick={() => {
-                        setEditingEmailId(emailItem.id);
-                        setEditingEmailAddress(emailItem.email);
-                      }}
-                      className="text-blue-600 hover:text-blue-700"
-                    >
-                      <Edit2 className="h-4 w-4" />
-                    </button>
-                    <button
-                      onClick={async () => {
-                        await updateEmail(emailItem.id, emailItem.email, !emailItem.active);
-                      }}
-                      className={`text-sm px-2 py-1 rounded ${
-                        emailItem.active
-                          ? "bg-gray-200 text-gray-700 hover:bg-gray-300"
-                          : "bg-green-200 text-green-700 hover:bg-green-300"
-                      }`}
-                    >
-                      {emailItem.active ? "Deaktiver" : "Aktiver"}
-                    </button>
-                    <button
-                      onClick={() => deleteEmail(emailItem.id)}
-                      className="text-red-600 hover:text-red-700"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </button>
-                  </>
+                  <span
+                    className={`flex-1 text-sm cursor-pointer hover:text-primary ${
+                      !emailItem.active ? "text-muted-foreground line-through" : ""
+                    }`}
+                    onClick={() => {
+                      setEditingEmailId(emailItem.id);
+                      setEditingEmailAddress(emailItem.email);
+                    }}
+                    title="Klikk for å redigere"
+                  >
+                    {emailItem.email}
+                  </span>
                 )}
+                <div className="flex items-center gap-3">
+                  <Switch
+                    checked={emailItem.active}
+                    onCheckedChange={(checked) =>
+                      updateEmail(emailItem.id, emailItem.email, checked)
+                    }
+                  />
+                  <button
+                    onClick={() => deleteEmail(emailItem.id)}
+                    className="text-muted-foreground hover:text-destructive transition-colors"
+                    title="Slett"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             ))}
             <div className="flex items-center gap-2">
               <input
-                className="flex-1 border rounded p-2 text-sm"
+                className="flex-1 border rounded px-3 py-2 text-sm"
                 placeholder="Legg til ny e-postadresse..."
                 value={newEmailAddress}
                 onChange={(e) => setNewEmailAddress(e.target.value)}
@@ -318,7 +290,7 @@ export default function EditContactPage() {
               />
               <button
                 onClick={addEmail}
-                className="px-3 py-1.5 text-sm rounded bg-blue-600 text-white hover:bg-blue-700 inline-flex items-center gap-1.5"
+                className="px-3 py-1.5 text-sm rounded bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5"
               >
                 <Plus className="h-4 w-4" /> Legg til
               </button>

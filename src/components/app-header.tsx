@@ -45,15 +45,14 @@ export function AppHeader() {
               </Sheet>
             </div>
           )}
-          <div className="hidden md:block relative h-10 w-[140px]">
-            <Image
-              src="/kodemaker-hvit-logo.svg"
-              alt="Logo"
-              fill
-              priority
-              className="drop-shadow object-contain"
-            />
-          </div>
+          <Image
+            src="/kodemaker-hvit-logo.svg"
+            alt="Logo"
+            width={150}
+            height={21}
+            priority
+            className="hidden md:block drop-shadow"
+          />
           <Link href="/" className="font-semibold tracking-wide">
             CReMa
           </Link>

@@ -2,18 +2,25 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { getToken } from "next-auth/jwt";
 
-export default async function middleware(req: NextRequest) {
-  const { pathname } = req.nextUrl;
+const STATIC_ASSET_EXTENSIONS = /\.(svg|png|jpg|jpeg|gif|ico|webp|woff|woff2|ttf|eot)$/i;
 
-  // Allow public assets and auth endpoints
-  if (
+function isPublicPath(pathname: string): boolean {
+  return (
     pathname.startsWith("/login") ||
     pathname.startsWith("/_next/") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/emails") ||
     pathname === "/robots.txt" ||
-    pathname === "/sitemap.xml"
-  ) {
+    pathname === "/sitemap.xml" ||
+    STATIC_ASSET_EXTENSIONS.test(pathname)
+  );
+}
+
+export default async function middleware(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
+  // Allow public assets and auth endpoints
+  if (isPublicPath(pathname)) {
     return NextResponse.next();
   }
 

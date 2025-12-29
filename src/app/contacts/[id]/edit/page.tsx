@@ -184,7 +184,7 @@ export default function EditContactPage() {
   if (!contact) return <div className="p-6">Laster…</div>;
 
   return (
-    <div className="p-6 space-y-4">
+    <div className="p-6 space-y-6 max-w-xl">
       <PageBreadcrumbs
         items={[
           { label: "Kontakter", href: "/contacts" },
@@ -195,177 +195,194 @@ export default function EditContactPage() {
           { label: "Endre" },
         ]}
       />
-      <div className="grid gap-3 max-w-xl">
-        <div>
-          <label className="block text-sm mb-1">Fornavn</label>
-          <input
-            className="w-full border rounded p-2 text-sm"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="block text-sm mb-1">Etternavn</label>
-          <input
-            className="w-full border rounded p-2 text-sm"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="block text-sm mb-1">E-postadresser</label>
-          <div className="space-y-2">
-            {emails.map((emailItem) => (
-              <div
-                key={emailItem.id}
-                className={`flex items-center gap-3 p-3 border rounded-lg ${
-                  !emailItem.active ? "bg-muted/30" : ""
-                }`}
-              >
-                {editingEmailId === emailItem.id ? (
-                  <input
-                    className="flex-1 border rounded px-3 py-1.5 text-sm bg-background"
-                    value={editingEmailAddress}
-                    onChange={(e) => setEditingEmailAddress(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        updateEmail(emailItem.id, editingEmailAddress, emailItem.active);
-                      } else if (e.key === "Escape") {
-                        setEditingEmailId(null);
-                        setEditingEmailAddress("");
-                      }
-                    }}
-                    onBlur={() => {
-                      if (editingEmailAddress !== emailItem.email) {
-                        updateEmail(emailItem.id, editingEmailAddress, emailItem.active);
-                      } else {
-                        setEditingEmailId(null);
-                        setEditingEmailAddress("");
-                      }
-                    }}
-                    autoFocus
-                  />
-                ) : (
-                  <span
-                    className={`flex-1 text-sm cursor-pointer hover:text-primary ${
-                      !emailItem.active ? "text-muted-foreground line-through" : ""
-                    }`}
-                    onClick={() => {
-                      setEditingEmailId(emailItem.id);
-                      setEditingEmailAddress(emailItem.email);
-                    }}
-                    title="Klikk for å redigere"
-                  >
-                    {emailItem.email}
-                  </span>
-                )}
-                <div className="flex items-center gap-3">
-                  <Switch
-                    checked={emailItem.active}
-                    onCheckedChange={(checked) =>
-                      updateEmail(emailItem.id, emailItem.email, checked)
-                    }
-                  />
-                  <button
-                    onClick={() => deleteEmail(emailItem.id)}
-                    className="text-muted-foreground hover:text-destructive transition-colors"
-                    title="Slett"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            ))}
-            <div className="flex items-center gap-2">
+
+      <h1 className="text-2xl font-semibold">Endre kontakt</h1>
+
+      {/* Section 1: Personal Information */}
+      <section className="bg-secondary rounded-lg p-5 space-y-4">
+        <h2 className="text-lg font-semibold">Personlig informasjon</h2>
+        <div className="grid gap-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Fornavn</label>
               <input
-                className="flex-1 border rounded px-3 py-2 text-sm"
-                placeholder="Legg til ny e-postadresse..."
-                value={newEmailAddress}
-                onChange={(e) => setNewEmailAddress(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    addEmail();
-                  }
-                }}
+                className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
               />
-              <button
-                onClick={addEmail}
-                className="px-3 py-1.5 text-sm rounded bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5"
-              >
-                <Plus className="h-4 w-4" /> Legg til
-              </button>
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1.5">Etternavn</label>
+              <input
+                className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+              />
             </div>
           </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Telefon</label>
+            <input
+              className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+              value={phone ?? ""}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5">LinkedIn</label>
+            <input
+              className="w-full border rounded-md px-3 py-2 text-sm bg-background"
+              value={linkedInUrl ?? ""}
+              onChange={(e) => setLinkedInUrl(e.target.value)}
+              placeholder="https://linkedin.com/in/..."
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1.5">Beskrivelse</label>
+            <textarea
+              className="w-full border rounded-md px-3 py-2 text-sm bg-background resize-y"
+              rows={3}
+              value={description ?? ""}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Notater om kontakten..."
+            />
+          </div>
         </div>
-        <div>
-          <label className="block text-sm mb-1">Telefon</label>
-          <input
-            className="w-full border rounded p-2 text-sm"
-            value={phone ?? ""}
-            onChange={(e) => setPhone(e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="block text-sm mb-1">LinkedIn</label>
-          <input
-            className="w-full border rounded p-2 text-sm"
-            value={linkedInUrl ?? ""}
-            onChange={(e) => setLinkedInUrl(e.target.value)}
-          />
-        </div>
-        <div>
-          <label className="block text-sm mb-1">Beskrivelse</label>
-          <textarea
-            className="w-full border rounded p-2 text-sm resize-y"
-            rows={3}
-            value={description ?? ""}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Beskrivelse..."
-          />
-        </div>
-        <div className="flex justify-between gap-2">
-          <div className="flex gap-2">
-            <button
-              className="px-3 py-1.5 text-sm rounded bg-red-600 text-white hover:bg-red-700 inline-flex items-center gap-1.5"
-              onClick={async () => {
-                if (!confirm("Slette kontakt? Kommentarer, oppfølginger, e-poster og hendelser knyttet til denne kontakten vil også bli slettet. Dette kan ikke angres.")) return;
-                const res = await fetch(`/api/contacts/${id}`, {
-                  method: "DELETE",
-                });
-                if (res.ok) {
-                  // Invalidate caches
-                  await Promise.all([
-                    globalMutate((key) => typeof key === "string" && key.startsWith("/api/contacts")),
-                    currentCompany && globalMutate(`/api/companies/${currentCompany.id}`),
-                  ]);
-                  // Navigate to company if exists, else contacts list
-                  router.push(currentCompany ? `/customers/${currentCompany.id}` : "/contacts");
+      </section>
+
+      {/* Section 2: Email Addresses */}
+      <section className="bg-secondary rounded-lg p-5 space-y-4">
+        <h2 className="text-lg font-semibold">E-postadresser</h2>
+        <div className="space-y-2">
+          {emails.map((emailItem) => (
+            <div
+              key={emailItem.id}
+              className={`flex items-center gap-3 p-3 border rounded-lg bg-background ${
+                !emailItem.active ? "opacity-60" : ""
+              }`}
+            >
+              {editingEmailId === emailItem.id ? (
+                <input
+                  className="flex-1 border rounded px-3 py-1.5 text-sm"
+                  value={editingEmailAddress}
+                  onChange={(e) => setEditingEmailAddress(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      updateEmail(emailItem.id, editingEmailAddress, emailItem.active);
+                    } else if (e.key === "Escape") {
+                      setEditingEmailId(null);
+                      setEditingEmailAddress("");
+                    }
+                  }}
+                  onBlur={() => {
+                    if (editingEmailAddress !== emailItem.email) {
+                      updateEmail(emailItem.id, editingEmailAddress, emailItem.active);
+                    } else {
+                      setEditingEmailId(null);
+                      setEditingEmailAddress("");
+                    }
+                  }}
+                  autoFocus
+                />
+              ) : (
+                <span
+                  className={`flex-1 text-sm cursor-pointer hover:text-primary ${
+                    !emailItem.active ? "text-muted-foreground line-through" : ""
+                  }`}
+                  onClick={() => {
+                    setEditingEmailId(emailItem.id);
+                    setEditingEmailAddress(emailItem.email);
+                  }}
+                  title="Klikk for å redigere"
+                >
+                  {emailItem.email}
+                </span>
+              )}
+              <div className="flex items-center gap-3">
+                <Switch
+                  checked={emailItem.active}
+                  onCheckedChange={(checked) =>
+                    updateEmail(emailItem.id, emailItem.email, checked)
+                  }
+                />
+                <button
+                  onClick={() => deleteEmail(emailItem.id)}
+                  className="text-muted-foreground hover:text-destructive transition-colors"
+                  title="Slett"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+          <div className="flex items-center gap-2">
+            <input
+              className="flex-1 border rounded-md px-3 py-2 text-sm bg-background"
+              placeholder="Legg til ny e-postadresse..."
+              value={newEmailAddress}
+              onChange={(e) => setNewEmailAddress(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  addEmail();
                 }
               }}
-            >
-              <Trash2 className="h-4 w-4" /> Slett
-            </button>
+            />
             <button
-              className="px-3 py-1.5 text-sm rounded bg-orange-600 text-white hover:bg-orange-700 inline-flex items-center gap-1.5"
-              onClick={() => setMergeDialogOpen(true)}
+              onClick={addEmail}
+              className="px-3 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5"
             >
-              <GitMerge className="h-4 w-4" /> Merge inn i...
+              <Plus className="h-4 w-4" /> Legg til
             </button>
           </div>
-          <div className="flex gap-2">
-            <button
-              className="px-3 py-1.5 text-sm border rounded inline-flex items-center gap-1.5"
-              onClick={() => router.push(`/contacts/${id}`)}
-            >
-              <X className="h-4 w-4" /> Avbryt
-            </button>
-            <button
-              className="px-3 py-1.5 text-sm rounded bg-primary text-primary-foreground inline-flex items-center gap-1.5"
-              onClick={save}
-            >
-              <Save className="h-4 w-4" /> Lagre
-            </button>
-          </div>
+        </div>
+      </section>
+
+      {/* Section 3: Company Affiliations */}
+      <section className="bg-secondary rounded-lg p-5">
+        <CompanyAffiliations contactId={id} history={history} onMutate={mutate} />
+      </section>
+
+      {/* Action Buttons */}
+      <div className="flex justify-between gap-2 pt-2">
+        <div className="flex gap-2">
+          <button
+            className="px-3 py-2 text-sm rounded-md bg-destructive text-destructive-foreground hover:bg-destructive/90 inline-flex items-center gap-1.5"
+            onClick={async () => {
+              if (!confirm("Slette kontakt? Kommentarer, oppfølginger, e-poster og hendelser knyttet til denne kontakten vil også bli slettet. Dette kan ikke angres.")) return;
+              const res = await fetch(`/api/contacts/${id}`, {
+                method: "DELETE",
+              });
+              if (res.ok) {
+                await Promise.all([
+                  globalMutate((key) => typeof key === "string" && key.startsWith("/api/contacts")),
+                  currentCompany && globalMutate(`/api/companies/${currentCompany.id}`),
+                ]);
+                router.push(currentCompany ? `/customers/${currentCompany.id}` : "/contacts");
+              }
+            }}
+          >
+            <Trash2 className="h-4 w-4" /> Slett
+          </button>
+          <button
+            className="px-3 py-2 text-sm rounded-md bg-tertiary text-tertiary-foreground hover:bg-tertiary/90 inline-flex items-center gap-1.5"
+            onClick={() => setMergeDialogOpen(true)}
+          >
+            <GitMerge className="h-4 w-4" /> Merge inn i...
+          </button>
+        </div>
+        <div className="flex gap-2">
+          <button
+            className="px-3 py-2 text-sm border rounded-md hover:bg-accent inline-flex items-center gap-1.5"
+            onClick={() => router.push(`/contacts/${id}`)}
+          >
+            <X className="h-4 w-4" /> Avbryt
+          </button>
+          <button
+            className="px-3 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5"
+            onClick={save}
+          >
+            <Save className="h-4 w-4" /> Lagre
+          </button>
         </div>
       </div>
 
@@ -383,8 +400,6 @@ export default function EditContactPage() {
           onMerge={handleMerge}
         />
       )}
-
-      <CompanyAffiliations contactId={id} history={history} onMutate={mutate} />
     </div>
   );
 }

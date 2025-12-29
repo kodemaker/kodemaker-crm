@@ -155,12 +155,12 @@ export function CompanyAffiliations({
   }
 
   return (
-    <section className="space-y-4">
-      <h3 className="text-sm font-medium">Firmatilknytninger</h3>
+    <div className="space-y-4">
+      <h2 className="text-lg font-semibold">Firmatilknytninger</h2>
 
       {/* Current Position */}
       {currentPosition && (
-        <div className="border rounded-lg p-4 bg-card">
+        <div className="border rounded-lg p-4 bg-background">
           <div className="flex items-start justify-between gap-4">
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
@@ -263,7 +263,7 @@ export function CompanyAffiliations({
 
       {/* Add new position form - shows when no current position */}
       {!currentPosition && (
-        <div className="border rounded-lg p-4 border-dashed">
+        <div className="border rounded-lg p-4 border-dashed bg-background">
           <div className="text-sm font-medium mb-3">Legg til nåværende stilling</div>
           <div className="grid grid-cols-3 gap-3">
             <div>
@@ -306,7 +306,7 @@ export function CompanyAffiliations({
           <div className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
             Tidligere stillinger
           </div>
-          <div className="border rounded-lg divide-y">
+          <div className="border rounded-lg divide-y bg-background">
             {previousPositions.map((p) => (
               <div key={p.id} className="p-3 flex items-center gap-3">
                 <Building2 className="size-4 text-muted-foreground shrink-0" />
@@ -327,6 +327,6 @@ export function CompanyAffiliations({
       {history.length === 0 && (
         <div className="text-sm text-muted-foreground">Ingen firmatilknytninger registrert.</div>
       )}
-    </section>
+    </div>
   );
 }

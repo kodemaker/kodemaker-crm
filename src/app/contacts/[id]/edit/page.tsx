@@ -175,37 +175,26 @@ export default function EditContactPage() {
     }
   }
 
-  async function handleMerge(mergeData: {
-    targetContactId: number;
-    mergeEmailAddresses: boolean;
-    mergeEmails: boolean;
-    mergeLeads: boolean;
-    mergeComments: boolean;
-    mergeEvents: boolean;
-    mergeFollowups: boolean;
-    deleteSourceContact: boolean;
-  }) {
-    const res = await fetch(`/api/contacts/${id}/merge`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(mergeData),
-    });
+  async function handleMerge(targetContactId: number) {
+    try {
+      const res = await fetch(`/api/contacts/${id}/merge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ targetContactId }),
+      });
 
-    if (res.ok) {
-      const result = await res.json();
-      alert(result.message || "Merge completed successfully");
-
-      if (mergeData.deleteSourceContact) {
-        // If source contact was deleted, redirect to contacts list
-        router.push("/contacts");
-      } else {
-        // Otherwise redirect to the contact view page
-        router.push(`/contacts/${id}`);
+      if (!res.ok) {
+        const error = await res.json();
+        toast.error(error.error || "Kunne ikke merge kontakter");
+        throw new Error(error.error || "Failed to merge contacts");
       }
-    } else {
-      const error = await res.json();
-      alert(error.error || "Failed to merge contacts");
-      throw new Error(error.error || "Failed to merge contacts");
+
+      toast.success("Kontakt merget");
+      // Source contact is always deleted, redirect to contacts list
+      router.push("/contacts");
+    } catch (error) {
+      console.error("Merge failed:", error);
+      throw error;
     }
   }
 
@@ -406,7 +395,7 @@ export default function EditContactPage() {
           className="px-3 py-2 text-sm rounded-md bg-tertiary text-white hover:bg-tertiary/90 inline-flex items-center gap-1.5"
           onClick={() => setMergeDialogOpen(true)}
         >
-          <GitMerge className="h-4 w-4" /> Merge inn i...
+          <GitMerge className="h-4 w-4" /> Merge kontakt
         </button>
       </div>
 

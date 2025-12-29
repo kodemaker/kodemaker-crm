@@ -6,7 +6,7 @@ const SOURCE_CONTACT = {
   lastName: "Nordmann",
 };
 
-const COUNTS = {
+const COUNTS_WITH_DATA = {
   emailAddresses: 2,
   emails: 5,
   leads: 1,
@@ -15,12 +15,56 @@ const COUNTS = {
   followups: 2,
 };
 
-export default (
-  <MergeContactsDialog
-    open={true}
-    onOpenChange={() => {}}
-    sourceContact={SOURCE_CONTACT}
-    contactCounts={COUNTS}
-    onMerge={async () => {}}
-  />
-);
+const COUNTS_EMPTY = {
+  emailAddresses: 0,
+  emails: 0,
+  leads: 0,
+  comments: 0,
+  events: 0,
+  followups: 0,
+};
+
+const COUNTS_PARTIAL = {
+  emailAddresses: 1,
+  emails: 0,
+  leads: 2,
+  comments: 0,
+  events: 1,
+  followups: 0,
+};
+
+export default {
+  "With data": (
+    <MergeContactsDialog
+      open={true}
+      onOpenChange={() => {}}
+      sourceContact={SOURCE_CONTACT}
+      contactCounts={COUNTS_WITH_DATA}
+      onMerge={async (targetContactId) => {
+        console.log("Merging to contact:", targetContactId);
+      }}
+    />
+  ),
+  "Empty counts": (
+    <MergeContactsDialog
+      open={true}
+      onOpenChange={() => {}}
+      sourceContact={SOURCE_CONTACT}
+      contactCounts={COUNTS_EMPTY}
+      onMerge={async (targetContactId) => {
+        console.log("Merging to contact:", targetContactId);
+      }}
+    />
+  ),
+  "Partial counts": (
+    <MergeContactsDialog
+      open={true}
+      onOpenChange={() => {}}
+      sourceContact={SOURCE_CONTACT}
+      contactCounts={COUNTS_PARTIAL}
+      onMerge={async (targetContactId) => {
+        console.log("Merging to contact:", targetContactId);
+      }}
+    />
+  ),
+};

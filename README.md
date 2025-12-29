@@ -138,9 +138,34 @@ On Scalingo, checked in migrations will be run automatically when the app is dep
 
 ## Deployment
 
-The app is deployed to Scalingo, and the database is deployed to Scalingo Postgres.
-Login is handled by NextAuth with Google login.
+The app is deployed to Scalingo (French hosting, GDPR-compliant) with two environments:
+
+| Environment    | URL                                                  | Deploy trigger                   |
+| -------------- | ---------------------------------------------------- | -------------------------------- |
+| **Staging**    | https://kodemaker-crm-staging.osc-fr1.scalingo.io    | Auto-deploy on push to `main`    |
+| **Production** | https://kodemaker-crm-prod.osc-fr1.scalingo.io       | Manual `git push production main`|
+
+Login is handled by NextAuth with Google login (@kodemaker.no accounts only).
 Inbound email is handled by Postmark Inbound Email that feeds the `/api/emails` route.
+
+### Deploy workflow
+
+```bash
+# Push to GitHub (triggers CI and auto-deploys to staging)
+git push origin main
+
+# After verifying staging, deploy to production
+git push production main
+```
+
+If you don't have the git remotes set up:
+
+```bash
+git remote add staging git@ssh.osc-fr1.scalingo.com:kodemaker-crm-staging.git
+git remote add production git@ssh.osc-fr1.scalingo.com:kodemaker-crm-prod.git
+```
+
+See [ADR 0002](docs/adr/0002-scalingo-dual-environment-hosting.md) for the decision rationale on hosting.
 
 ### Email inbound
 
@@ -159,9 +184,11 @@ Subjects are stored. When creating a contact from an email address, the local‑
 Scalingo is set up to automatically run generated migrations when the app is deployed. If you want to manually migrate the database, you can do so by running the following command:
 
 ```bash
-    URL="$(scalingo -a kodemaker-crm env-get SCALINGO_POSTGRESQL_URL)"
-    scalingo -a kodemaker-crm env-set DATABASE_URL="$URL"
-    scalingo -a kodemaker-crm run 'npx -y drizzle-kit migrate'
+# For staging
+scalingo -a kodemaker-crm-staging run 'npm run db:migrate'
+
+# For production
+scalingo -a kodemaker-crm-prod run 'npm run db:migrate'
 ```
 
 ## Testing

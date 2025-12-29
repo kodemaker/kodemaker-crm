@@ -9,10 +9,10 @@
 
 ## PROD Deployment
 
-- TODO Overføre repo til kodemaker.no
-- TODO Lag konto på Scalingo for app og db
-- TODO Lag kodemaker-konto på postmarkapp.com
-- TODO Lag endelig deploy mot kodemaker rep og kodemaker secrets.
+- [x] ~~Overføre repo til kodemaker.no~~ (Done)
+- [x] ~~Lag konto på Scalingo for app og db~~ (Done: staging + production environments)
+- [x] ~~Lag endelig deploy mot kodemaker rep og kodemaker secrets~~ (Done: see ADR 0002)
+- TODO Lag kodemaker-konto på postmarkapp.com (for production email inbound)
 
 ## Tech debt / refactoring
 

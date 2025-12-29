@@ -217,6 +217,31 @@ CI Expectations
 - Lint passes with zero warnings.
 - No TypeScript errors in app code.
 
+Deployment
+
+Two environments on Scalingo (French hosting, GDPR-compliant):
+
+| Environment    | App name                 | Deploy trigger                    |
+| -------------- | ------------------------ | --------------------------------- |
+| **Staging**    | `kodemaker-crm-staging`  | Auto-deploy on push to `main`     |
+| **Production** | `kodemaker-crm-prod`     | Manual `git push production main` |
+
+Deploy workflow:
+
+1. Push to `origin main` → GitHub CI runs → auto-deploys to staging.
+2. Verify on staging.
+3. `git push production main` → deploys to production.
+
+Useful commands:
+
+```bash
+scalingo --app kodemaker-crm-staging logs      # View staging logs
+scalingo --app kodemaker-crm-prod logs         # View production logs
+scalingo --app kodemaker-crm-prod ps           # Check production status
+```
+
+See [ADR 0002](docs/adr/0002-scalingo-dual-environment-hosting.md) for hosting decision rationale.
+
 Contacts
 
 - Product/Design: Trygve

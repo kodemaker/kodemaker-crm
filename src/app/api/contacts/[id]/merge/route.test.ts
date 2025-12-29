@@ -46,11 +46,24 @@ describe("/api/contacts/[id]/merge", () => {
     vi.clearAllMocks();
   });
 
-  it("should validate merge request schema", async () => {
+  it("should validate merge request schema - targetContactId required", async () => {
+    const params = Promise.resolve({ id: "1" });
+    const req = {
+      json: vi.fn().mockResolvedValue({}), // Missing targetContactId
+    };
+
+    const response = await POST(req as any, { params });
+    expect(response.status).toBe(400);
+
+    const data = await response.json();
+    expect(data.error).toBeDefined();
+  });
+
+  it("should validate merge request schema - targetContactId must be positive number", async () => {
     const params = Promise.resolve({ id: "1" });
     const req = {
       json: vi.fn().mockResolvedValue({
-        targetContactId: "invalid", // Should be number
+        targetContactId: "invalid",
       }),
     };
 
@@ -74,8 +87,6 @@ describe("/api/contacts/[id]/merge", () => {
     const req = {
       json: vi.fn().mockResolvedValue({
         targetContactId: 2,
-        mergeEmailAddresses: true,
-        deleteSourceContact: false,
       }),
     };
 
@@ -86,6 +97,41 @@ describe("/api/contacts/[id]/merge", () => {
     expect(data.error).toBe("Source contact not found");
   });
 
+  it("should return 404 if target contact not found", async () => {
+    let callCount = 0;
+    db.select.mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        where: vi.fn().mockReturnValue({
+          limit: vi.fn().mockImplementation(() => {
+            callCount++;
+            if (callCount === 1) {
+              // Source contact exists
+              return Promise.resolve([
+                { id: 1, firstName: "John", lastName: "Doe" },
+              ]);
+            } else {
+              // Target contact not found
+              return Promise.resolve([]);
+            }
+          }),
+        }),
+      }),
+    });
+
+    const params = Promise.resolve({ id: "1" });
+    const req = {
+      json: vi.fn().mockResolvedValue({
+        targetContactId: 999,
+      }),
+    };
+
+    const response = await POST(req as any, { params });
+    expect(response.status).toBe(404);
+
+    const data = await response.json();
+    expect(data.error).toBe("Target contact not found");
+  });
+
   it("should prevent merging contact with itself", async () => {
     // Mock contacts exist
     db.select.mockReturnValue({
@@ -94,18 +140,10 @@ describe("/api/contacts/[id]/merge", () => {
           limit: vi
             .fn()
             .mockResolvedValueOnce([
-              {
-                id: 1,
-                firstName: "John",
-                lastName: "Doe",
-              },
+              { id: 1, firstName: "John", lastName: "Doe" },
             ])
             .mockResolvedValueOnce([
-              {
-                id: 1,
-                firstName: "John",
-                lastName: "Doe",
-              },
+              { id: 1, firstName: "John", lastName: "Doe" },
             ]),
         }),
       }),
@@ -115,8 +153,6 @@ describe("/api/contacts/[id]/merge", () => {
     const req = {
       json: vi.fn().mockResolvedValue({
         targetContactId: 1, // Same as source
-        mergeEmailAddresses: true,
-        deleteSourceContact: false,
       }),
     };
 
@@ -127,239 +163,7 @@ describe("/api/contacts/[id]/merge", () => {
     expect(data.error).toBe("Cannot merge contact with itself");
   });
 
-  it("should successfully merge contacts", async () => {
-    // Mock transaction
-    const mockTransaction = vi.fn().mockImplementation(async (callback) => {
-      await callback({
-        update: vi.fn().mockReturnValue({
-          set: vi.fn().mockReturnValue({
-            where: vi.fn(),
-          }),
-        }),
-        delete: vi.fn().mockReturnValue({
-          where: vi.fn(),
-        }),
-      });
-    });
-
-    db.transaction = mockTransaction;
-
-    // Mock contacts exist and are different
-    let callCount = 0;
-    db.select.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockImplementation(() => {
-            callCount++;
-            if (callCount === 1) {
-              return Promise.resolve([
-                {
-                  id: 1,
-                  firstName: "John",
-                  lastName: "Doe",
-                },
-              ]);
-            } else {
-              return Promise.resolve([
-                {
-                  id: 2,
-                  firstName: "Jane",
-                  lastName: "Smith",
-                },
-              ]);
-            }
-          }),
-        }),
-      }),
-    });
-
-    const params = Promise.resolve({ id: "1" });
-    const req = {
-      json: vi.fn().mockResolvedValue({
-        targetContactId: 2,
-        mergeEmailAddresses: true,
-        mergeEmails: false,
-        mergeLeads: false,
-        mergeComments: false,
-        mergeEvents: false,
-        mergeFollowups: false,
-        deleteSourceContact: false,
-      }),
-    };
-
-    const response = await POST(req as any, { params });
-    expect(response.status).toBe(200);
-
-    const data = await response.json();
-    expect(data.success).toBe(true);
-    expect(data.message).toContain("Successfully merged");
-
-    // Verify transaction was called
-    expect(mockTransaction).toHaveBeenCalled();
-  });
-
-  it("should successfully merge comments when requested", async () => {
-    // Mock transaction that tracks what gets merged
-    const mockUpdateCalls: any[] = [];
-    const mockTransaction = vi.fn().mockImplementation(async (callback) => {
-      await callback({
-        update: vi.fn().mockImplementation((table) => {
-          const updateCall = { table };
-          mockUpdateCalls.push(updateCall);
-          return {
-            set: vi.fn().mockReturnValue({
-              where: vi.fn(),
-            }),
-          };
-        }),
-        delete: vi.fn().mockReturnValue({
-          where: vi.fn(),
-        }),
-      });
-    });
-
-    db.transaction = mockTransaction;
-
-    // Mock contacts exist and are different
-    let callCount = 0;
-    db.select.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockImplementation(() => {
-            callCount++;
-            if (callCount === 1) {
-              return Promise.resolve([
-                {
-                  id: 1,
-                  firstName: "John",
-                  lastName: "Doe",
-                },
-              ]);
-            } else {
-              return Promise.resolve([
-                {
-                  id: 2,
-                  firstName: "Jane",
-                  lastName: "Smith",
-                },
-              ]);
-            }
-          }),
-        }),
-      }),
-    });
-
-    const params = Promise.resolve({ id: "1" });
-    const req = {
-      json: vi.fn().mockResolvedValue({
-        targetContactId: 2,
-        mergeEmailAddresses: false,
-        mergeEmails: false,
-        mergeLeads: false,
-        mergeComments: true, // Only merge comments
-        mergeEvents: false,
-        mergeFollowups: false,
-        deleteSourceContact: false,
-      }),
-    };
-
-    const response = await POST(req as any, { params });
-    expect(response.status).toBe(200);
-
-    const data = await response.json();
-    expect(data.success).toBe(true);
-    expect(data.message).toContain("Successfully merged");
-
-    // Verify transaction was called
-    expect(mockTransaction).toHaveBeenCalled();
-
-    // Should have called update once for comments
-    expect(mockUpdateCalls).toHaveLength(1);
-  });
-
-  it("should update activityEvents contactId when mergeEvents is true", async () => {
-    // Mock transaction that tracks what tables get updated
-    const mockUpdateCalls: { table: any; setArgs: any }[] = [];
-    const mockTransaction = vi.fn().mockImplementation(async (callback) => {
-      await callback({
-        update: vi.fn().mockImplementation((table) => {
-          return {
-            set: vi.fn().mockImplementation((setArgs) => {
-              mockUpdateCalls.push({ table, setArgs });
-              return {
-                where: vi.fn(),
-              };
-            }),
-          };
-        }),
-        delete: vi.fn().mockReturnValue({
-          where: vi.fn(),
-        }),
-      });
-    });
-
-    db.transaction = mockTransaction;
-
-    // Mock contacts exist and are different
-    let callCount = 0;
-    db.select.mockReturnValue({
-      from: vi.fn().mockReturnValue({
-        where: vi.fn().mockReturnValue({
-          limit: vi.fn().mockImplementation(() => {
-            callCount++;
-            if (callCount === 1) {
-              return Promise.resolve([
-                {
-                  id: 1,
-                  firstName: "John",
-                  lastName: "Doe",
-                },
-              ]);
-            } else {
-              return Promise.resolve([
-                {
-                  id: 2,
-                  firstName: "Jane",
-                  lastName: "Smith",
-                },
-              ]);
-            }
-          }),
-        }),
-      }),
-    });
-
-    const params = Promise.resolve({ id: "1" });
-    const req = {
-      json: vi.fn().mockResolvedValue({
-        targetContactId: 2,
-        mergeEmailAddresses: false,
-        mergeEmails: false,
-        mergeLeads: false,
-        mergeComments: false,
-        mergeEvents: true, // Only merge events
-        mergeFollowups: false,
-        deleteSourceContact: false,
-      }),
-    };
-
-    const response = await POST(req as any, { params });
-    expect(response.status).toBe(200);
-
-    const data = await response.json();
-    expect(data.success).toBe(true);
-
-    // Verify transaction was called
-    expect(mockTransaction).toHaveBeenCalled();
-
-    // Should have called update once for activityEvents
-    expect(mockUpdateCalls).toHaveLength(1);
-
-    // Verify the contactId was set to targetContactId (2)
-    expect(mockUpdateCalls[0].setArgs).toEqual({ contactId: 2 });
-  });
-
-  it("should merge all selected items in a single transaction", async () => {
+  it("should successfully merge all data and delete source contact", async () => {
     // Mock transaction that tracks all operations
     const mockUpdateCalls: { table: any }[] = [];
     const mockDeleteCalls: { table: any }[] = [];
@@ -393,19 +197,11 @@ describe("/api/contacts/[id]/merge", () => {
             callCount++;
             if (callCount === 1) {
               return Promise.resolve([
-                {
-                  id: 1,
-                  firstName: "John",
-                  lastName: "Doe",
-                },
+                { id: 1, firstName: "John", lastName: "Doe" },
               ]);
             } else {
               return Promise.resolve([
-                {
-                  id: 2,
-                  firstName: "Jane",
-                  lastName: "Smith",
-                },
+                { id: 2, firstName: "Jane", lastName: "Smith" },
               ]);
             }
           }),
@@ -417,23 +213,22 @@ describe("/api/contacts/[id]/merge", () => {
     const req = {
       json: vi.fn().mockResolvedValue({
         targetContactId: 2,
-        mergeEmailAddresses: true,
-        mergeEmails: true,
-        mergeLeads: true,
-        mergeComments: true,
-        mergeEvents: true,
-        mergeFollowups: true,
-        deleteSourceContact: true,
       }),
     };
 
     const response = await POST(req as any, { params });
     expect(response.status).toBe(200);
 
+    const data = await response.json();
+    expect(data.success).toBe(true);
+    expect(data.message).toContain("Successfully merged");
+    expect(data.message).toContain("John Doe");
+    expect(data.message).toContain("Jane Smith");
+
     // Verify transaction was called
     expect(mockTransaction).toHaveBeenCalled();
 
-    // Should have called update for all 6 merge operations:
+    // Should have called update for all 6 tables:
     // contactEmails, emails, leads, comments, activityEvents, followups
     expect(mockUpdateCalls).toHaveLength(6);
 
@@ -441,22 +236,10 @@ describe("/api/contacts/[id]/merge", () => {
     expect(mockDeleteCalls).toHaveLength(1);
   });
 
-  it("should not merge events when mergeEvents is false", async () => {
-    const mockUpdateCalls: { table: any }[] = [];
-    const mockTransaction = vi.fn().mockImplementation(async (callback) => {
-      await callback({
-        update: vi.fn().mockImplementation((table) => {
-          mockUpdateCalls.push({ table });
-          return {
-            set: vi.fn().mockReturnValue({
-              where: vi.fn(),
-            }),
-          };
-        }),
-        delete: vi.fn().mockReturnValue({
-          where: vi.fn(),
-        }),
-      });
+  it("should return 500 on database error", async () => {
+    // Mock transaction that throws an error
+    const mockTransaction = vi.fn().mockImplementation(async () => {
+      throw new Error("Database error");
     });
 
     db.transaction = mockTransaction;
@@ -470,19 +253,11 @@ describe("/api/contacts/[id]/merge", () => {
             callCount++;
             if (callCount === 1) {
               return Promise.resolve([
-                {
-                  id: 1,
-                  firstName: "John",
-                  lastName: "Doe",
-                },
+                { id: 1, firstName: "John", lastName: "Doe" },
               ]);
             } else {
               return Promise.resolve([
-                {
-                  id: 2,
-                  firstName: "Jane",
-                  lastName: "Smith",
-                },
+                { id: 2, firstName: "Jane", lastName: "Smith" },
               ]);
             }
           }),
@@ -494,20 +269,13 @@ describe("/api/contacts/[id]/merge", () => {
     const req = {
       json: vi.fn().mockResolvedValue({
         targetContactId: 2,
-        mergeEmailAddresses: true,
-        mergeEmails: false,
-        mergeLeads: false,
-        mergeComments: false,
-        mergeEvents: false, // Events NOT merged
-        mergeFollowups: false,
-        deleteSourceContact: false,
       }),
     };
 
     const response = await POST(req as any, { params });
-    expect(response.status).toBe(200);
+    expect(response.status).toBe(500);
 
-    // Should only have called update for contactEmails (1 operation)
-    expect(mockUpdateCalls).toHaveLength(1);
+    const data = await response.json();
+    expect(data.error).toBe("Failed to merge contacts");
   });
 });

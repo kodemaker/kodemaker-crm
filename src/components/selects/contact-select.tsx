@@ -24,6 +24,8 @@ export interface ContactSelectProps {
   allowCreate?: boolean;
   /** If provided, filters contacts to only those in this company */
   companyId?: number;
+  /** If provided, excludes this contact ID from the list (e.g., source contact in merge) */
+  excludeId?: number;
   /** Custom className */
   className?: string;
 }
@@ -45,6 +47,7 @@ export function ContactSelect({
   placeholder = "Velg kontakt",
   allowCreate = true,
   companyId,
+  excludeId,
   className,
 }: ContactSelectProps) {
   const [popoverOpen, setPopoverOpen] = useState(false);
@@ -57,7 +60,12 @@ export function ContactSelect({
       : "/api/contacts"
     : null;
 
-  const { data: contacts } = useSWR<ContactOption[]>(apiUrl);
+  const { data: rawContacts } = useSWR<ContactOption[]>(apiUrl);
+
+  // Filter out excluded contact (e.g., source contact in merge)
+  const contacts = excludeId
+    ? rawContacts?.filter((c) => c.id !== excludeId)
+    : rawContacts;
 
   function getFullName(contact: ContactOption): string {
     return `${contact.firstName} ${contact.lastName}`;

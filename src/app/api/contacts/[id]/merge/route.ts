@@ -15,13 +15,6 @@ import { requireApiAuth } from "@/lib/require-api-auth";
 
 const mergeContactSchema = z.object({
   targetContactId: z.number().int().positive(),
-  mergeEmailAddresses: z.boolean().default(false),
-  mergeEmails: z.boolean().default(false),
-  mergeLeads: z.boolean().default(false),
-  mergeComments: z.boolean().default(false),
-  mergeEvents: z.boolean().default(false),
-  mergeFollowups: z.boolean().default(false),
-  deleteSourceContact: z.boolean().default(false),
 });
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -39,16 +32,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: parsed.error.flatten() }, { status: 400 });
   }
 
-  const {
-    targetContactId,
-    mergeEmailAddresses,
-    mergeEmails,
-    mergeLeads,
-    mergeComments,
-    mergeEvents,
-    mergeFollowups,
-    deleteSourceContact,
-  } = parsed.data;
+  const { targetContactId } = parsed.data;
 
   // Verify both contacts exist
   const [sourceContact] = await db
@@ -75,59 +59,46 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   try {
     // Start a transaction to ensure data consistency
+    // All data is transferred and source contact is deleted
     await db.transaction(async (tx) => {
-      // Merge email addresses
-      if (mergeEmailAddresses) {
-        await tx
-          .update(contactEmails)
-          .set({ contactId: targetContactId })
-          .where(eq(contactEmails.contactId, sourceContactId));
-      }
+      // Transfer email addresses to target contact
+      await tx
+        .update(contactEmails)
+        .set({ contactId: targetContactId })
+        .where(eq(contactEmails.contactId, sourceContactId));
 
-      // Merge emails
-      if (mergeEmails) {
-        await tx
-          .update(emails)
-          .set({ recipientContactId: targetContactId })
-          .where(eq(emails.recipientContactId, sourceContactId));
-      }
+      // Transfer emails to target contact
+      await tx
+        .update(emails)
+        .set({ recipientContactId: targetContactId })
+        .where(eq(emails.recipientContactId, sourceContactId));
 
-      // Merge leads
-      if (mergeLeads) {
-        await tx
-          .update(leads)
-          .set({ contactId: targetContactId })
-          .where(eq(leads.contactId, sourceContactId));
-      }
+      // Transfer leads to target contact
+      await tx
+        .update(leads)
+        .set({ contactId: targetContactId })
+        .where(eq(leads.contactId, sourceContactId));
 
-      // Merge comments
-      if (mergeComments) {
-        await tx
-          .update(comments)
-          .set({ contactId: targetContactId })
-          .where(eq(comments.contactId, sourceContactId));
-      }
+      // Transfer comments to target contact
+      await tx
+        .update(comments)
+        .set({ contactId: targetContactId })
+        .where(eq(comments.contactId, sourceContactId));
 
-      // Merge activity events (using activity_events table with contactId)
-      if (mergeEvents) {
-        await tx
-          .update(activityEvents)
-          .set({ contactId: targetContactId })
-          .where(eq(activityEvents.contactId, sourceContactId));
-      }
+      // Transfer activity events to target contact
+      await tx
+        .update(activityEvents)
+        .set({ contactId: targetContactId })
+        .where(eq(activityEvents.contactId, sourceContactId));
 
-      // Merge followups
-      if (mergeFollowups) {
-        await tx
-          .update(followups)
-          .set({ contactId: targetContactId })
-          .where(eq(followups.contactId, sourceContactId));
-      }
+      // Transfer followups to target contact
+      await tx
+        .update(followups)
+        .set({ contactId: targetContactId })
+        .where(eq(followups.contactId, sourceContactId));
 
-      // Delete source contact if requested
-      if (deleteSourceContact) {
-        await tx.delete(contacts).where(eq(contacts.id, sourceContactId));
-      }
+      // Delete source contact
+      await tx.delete(contacts).where(eq(contacts.id, sourceContactId));
     });
 
     return NextResponse.json({

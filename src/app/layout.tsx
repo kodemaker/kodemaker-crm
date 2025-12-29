@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   title: "Kodemaker CReMa",
   description: "Customer Relationship Management for Kodemaker",
   icons: {
-    icon: "/icon.svg",
+    icon: "/logo.svg",
   },
 };
 

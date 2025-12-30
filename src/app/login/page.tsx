@@ -28,7 +28,7 @@ export default function LoginPage() {
                 className="drop-shadow-md"
               />
             </div>
-            <div className="animate-in fade-in duration-500 delay-300 text-center">
+            <div className="text-center">
               <h1 className="text-2xl font-semibold tracking-tight text-foreground">
                 Logg inn på CReMa
               </h1>
@@ -42,7 +42,7 @@ export default function LoginPage() {
           <div className="h-px w-full bg-border" />
 
           {/* Sign in button */}
-          <div className="w-full animate-in fade-in duration-500 delay-500">
+          <div className="w-full">
             <Button
               size="lg"
               className="w-full text-base"

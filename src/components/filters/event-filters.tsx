@@ -15,7 +15,7 @@ import {
   CommandItem,
   CommandList,
 } from "@/components/ui/command";
-import { DatePicker } from "@/components/ui/date-picker";
+import { DateRangePicker } from "@/components/ui/date-range-picker";
 import { cn } from "@/lib/utils";
 import type { ActivityEventType } from "@/types/api";
 
@@ -106,21 +106,21 @@ export function EventFiltersBar({ filters, onChange }: EventFiltersProps) {
         labels={{ mine: "Meg", excludeMine: "Alle andre" }}
         hideIcons
       />
-      <div className="flex items-center gap-1">
-        <DatePicker
-          value={filters.fromDate}
-          onValueChange={(date) => onChange({ ...filters, fromDate: date ?? undefined })}
-          placeholder="Fra dato"
-          className="h-8 w-[130px]"
-        />
-        <span className="text-muted-foreground">-</span>
-        <DatePicker
-          value={filters.toDate}
-          onValueChange={(date) => onChange({ ...filters, toDate: date ?? undefined })}
-          placeholder="Til dato"
-          className="h-8 w-[130px]"
-        />
-      </div>
+      <DateRangePicker
+        value={
+          filters.fromDate || filters.toDate
+            ? { from: filters.fromDate, to: filters.toDate }
+            : undefined
+        }
+        onValueChange={(range) =>
+          onChange({ ...filters, fromDate: range?.from, toDate: range?.to })
+        }
+        placeholder="Periode"
+        className={cn(
+          "h-8",
+          (filters.fromDate || filters.toDate) && "border-primary/50 bg-primary/5"
+        )}
+      />
       {hasFilters && (
         <Button variant="ghost" size="sm" onClick={clearFilters} className="h-8 px-2">
           <X className="h-4 w-4 mr-1" />

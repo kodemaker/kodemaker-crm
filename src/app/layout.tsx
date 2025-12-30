@@ -15,6 +15,8 @@ export const metadata: Metadata = {
   icons: {
     icon: "/logo.svg",
   },
+  // Theme color for iOS Safari address bar - matches primary color
+  themeColor: "#3d7a9e",
 };
 
 export default async function RootLayout({

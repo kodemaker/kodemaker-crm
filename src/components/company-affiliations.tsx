@@ -205,7 +205,7 @@ export function CompanyAffiliations({
           {/* Edit form when ending */}
           {isEnding && (
             <div className="mt-4 pt-4 border-t space-y-3">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Firma</label>
                   <CompanySelect
@@ -224,7 +224,7 @@ export function CompanyAffiliations({
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Startdato</label>
                   <DatePicker
@@ -264,7 +264,7 @@ export function CompanyAffiliations({
       {!currentPosition && (
         <div className="border rounded-lg p-4 border-dashed bg-background">
           <div className="text-sm font-medium mb-3">Legg til nåværende stilling</div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className="block text-xs text-muted-foreground mb-1">Firma</label>
               <CompanySelect

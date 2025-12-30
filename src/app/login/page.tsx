@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 
 export default function LoginPage() {
   return (
-    <div className="fixed inset-0 flex items-center justify-center overflow-hidden">
+    <div className="fixed inset-0 flex items-center justify-center overflow-hidden bg-background">
       {/* Gradient background */}
       <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-accent/10" />
 
-      {/* Subtle decorative circles */}
-      <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-primary/5 blur-3xl" />
-      <div className="absolute -bottom-24 -left-24 h-96 w-96 rounded-full bg-chart-2/5 blur-3xl" />
+      {/* Subtle decorative circles - contained within viewport */}
+      <div className="absolute top-0 right-0 h-96 w-96 -translate-y-24 translate-x-24 rounded-full bg-primary/5 blur-3xl" />
+      <div className="absolute bottom-0 left-0 h-96 w-96 translate-y-24 -translate-x-24 rounded-full bg-primary/5 blur-3xl" />
 
       {/* Login card */}
       <div className="relative z-10 w-full max-w-sm mx-4 animate-in fade-in slide-in-from-bottom-4 duration-700">

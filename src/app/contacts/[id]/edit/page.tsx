@@ -344,7 +344,7 @@ export default function EditContactPage() {
               </div>
             </div>
           ))}
-          <div className="flex items-center gap-2">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
             <input
               className="flex-1 border rounded-md px-3 py-2 text-sm bg-background"
               placeholder="Legg til ny e-postadresse..."
@@ -358,7 +358,7 @@ export default function EditContactPage() {
             />
             <button
               onClick={addEmail}
-              className="px-3 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center gap-1.5"
+              className="px-3 py-2 text-sm rounded-md bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center justify-center gap-1.5"
             >
               <Plus className="h-4 w-4" /> Legg til
             </button>

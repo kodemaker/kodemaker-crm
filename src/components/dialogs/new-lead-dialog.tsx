@@ -284,7 +284,7 @@ export function NewLeadDialog({
               )}
             />
 
-            <div className="grid grid-cols-2 gap-x-5 gap-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-6">
               <FormField
                 control={form.control}
                 name="status"
@@ -318,7 +318,7 @@ export function NewLeadDialog({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-x-5 gap-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-6">
               <FormField
                 control={form.control}
                 name="contactId"

@@ -54,7 +54,7 @@ export function CustomersClient() {
           return (
             <div
               key={c.id}
-              className="p-3 flex items-center justify-between cursor-pointer hover:bg-muted/30"
+              className="p-3 flex items-center justify-between cursor-pointer hover:bg-muted/30 active:bg-muted/50"
               onClick={() => router.push(`/customers/${c.id}`)}
               role="button"
               tabIndex={0}

@@ -109,7 +109,7 @@ export function KanbanLeadCard({ lead, isDragOverlay = false }: KanbanLeadCardPr
       ref={setNodeRef}
       style={style}
       className={cn(
-        "bg-card border rounded-lg p-3 cursor-grab hover:border-primary/50 transition-colors",
+        "bg-card border rounded-lg p-3 cursor-grab hover:border-primary/50 active:border-primary/70 transition-colors touch-none",
         isDragging && "opacity-50"
       )}
       {...listeners}

@@ -39,7 +39,7 @@ export function ContactsClient() {
           {rows.map((r) => (
           <div
             key={r.id}
-            className="p-3 hover:bg-muted cursor-pointer"
+            className="p-3 hover:bg-muted active:bg-muted cursor-pointer"
             role="button"
             tabIndex={0}
             onClick={() => router.push(`/contacts/${r.id}`)}

@@ -100,7 +100,7 @@ function FinishedLeadCard({
       ref={setNodeRef}
       style={style}
       className={cn(
-        "relative block p-3 rounded-lg border bg-card cursor-grab hover:border-primary/50 transition-colors",
+        "relative block p-3 rounded-lg border bg-card cursor-grab hover:border-primary/50 active:border-primary/70 transition-colors touch-none",
         isDragging && "opacity-50"
       )}
       {...listeners}

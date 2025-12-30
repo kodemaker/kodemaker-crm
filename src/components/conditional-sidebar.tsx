@@ -23,14 +23,13 @@ export function ConditionalSidebar({
   }
 
   // Kanban page: sidebar at edge, content right edge aligns with header
+  // On mobile (< lg), sidebar is hidden so we use simple padding
+  // On large screens, we align right edge with max-w-6xl container
   if (isKanbanPage) {
     return (
       <div className="flex">
         <Sidebar />
-        <div
-          className="flex-1 min-w-0"
-          style={{ marginRight: "max(1rem, calc((100vw - 72rem) / 2))" }}
-        >
+        <div className="flex-1 min-w-0 mr-2 sm:mr-4 lg:mr-[max(1rem,calc((100vw-72rem)/2))]">
           {children}
         </div>
       </div>

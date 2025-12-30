@@ -64,7 +64,7 @@ function NavLink({
   return (
     <Link
       href={href}
-      className={`flex items-center gap-2 rounded px-3 py-2 text-sm hover:bg-muted ${
+      className={`flex items-center gap-2 rounded px-3 py-2 text-sm hover:bg-muted active:bg-muted/80 ${
         active ? "bg-muted font-semibold" : "text-foreground/80"
       }`}
     >

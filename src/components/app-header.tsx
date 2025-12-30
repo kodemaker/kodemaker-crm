@@ -32,7 +32,7 @@ export function AppHeader() {
               <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
                 <SheetTrigger asChild>
                   <button
-                    className="p-2 rounded bg-white/15 hover:bg-white/25"
+                    className="p-2 min-w-[44px] min-h-[44px] rounded bg-white/15 hover:bg-white/25 active:bg-white/35"
                     aria-label="Open Menu"
                   >
                     <Menu className="h-5 w-5" />
@@ -71,7 +71,7 @@ export function AppHeader() {
             </Tooltip>
             <button
               type="button"
-              className="rounded bg-white/15 hover:bg-white/25 px-3 py-1.5 text-sm"
+              className="rounded bg-white/15 hover:bg-white/25 active:bg-white/35 px-3 py-1.5 text-sm"
               onClick={() => signOut({ callbackUrl: "/login" })}
             >
               Logg ut
@@ -82,7 +82,7 @@ export function AppHeader() {
             <nav className="flex items-center gap-2">
               <button
                 type="button"
-                className="rounded bg-white/15 hover:bg-white/25 px-3 py-1.5 text-sm"
+                className="rounded bg-white/15 hover:bg-white/25 active:bg-white/35 px-3 py-1.5 text-sm"
                 onClick={() => signIn("google", { callbackUrl: "/" })}
               >
                 Logg inn

@@ -26,7 +26,8 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:psql": "docker compose exec -T db psql -U postgres -d crm3",
-    "db:psql:scalingo": "scalingo -a kodemaker-crm pgsql-console"
+    "db:psql:scalingo:staging": "scalingo -a kodemaker-crm-staging pgsql-console",
+    "db:psql:scalingo:prod": "scalingo -a kodemaker-crm-prod pgsql-console"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

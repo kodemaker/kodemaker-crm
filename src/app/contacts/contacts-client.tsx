@@ -3,6 +3,8 @@ import { useState } from "react";
 import useSWR from "swr";
 import { Input } from "@/components/ui/input";
 import { useRouter } from "next/navigation";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Users, UserPlus, Heart } from "lucide-react";
 
 import type { ListContactsItem } from "@/types/api";
 
@@ -26,11 +28,15 @@ export function ContactsClient() {
           onChange={(e) => setQ(e.target.value)}
         />
       </div>
-      <div className="border rounded divide-y">
-        {rows.length === 0 ? (
-          <div className="p-3 text-sm text-muted-foreground">Ingen treff</div>
-        ) : null}
-        {rows.map((r) => (
+      {rows.length === 0 ? (
+        <EmptyState
+          icons={[Users, UserPlus, Heart]}
+          title="Ingen kontakter enda"
+          description="Nettverket ditt starter her. Legg til folk du jobber med, har jobbet med – eller som kan bli nye leads."
+        />
+      ) : (
+        <div className="border rounded divide-y">
+          {rows.map((r) => (
           <div
             key={r.id}
             className="p-3 hover:bg-muted cursor-pointer"
@@ -63,7 +69,8 @@ export function ContactsClient() {
             </div>
           </div>
         ))}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

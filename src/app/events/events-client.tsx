@@ -6,6 +6,8 @@ import { ActivityEventItem } from "@/components/hendelseslogg/activity-event-ite
 import { EventFiltersBar, type EventFilters } from "@/components/filters/event-filters";
 import { SimplePagination } from "@/components/pagination/simple-pagination";
 import { usePagination } from "@/hooks/use-pagination";
+import { EmptyState } from "@/components/ui/empty-state";
+import { CalendarCheck, MessageCircle, Sparkles } from "lucide-react";
 import type { ApiActivityEvent } from "@/types/api";
 
 const EVENTS_LIMIT = 10;
@@ -211,7 +213,13 @@ export function EventsClient() {
           {isLoading && items.length === 0 ? (
             <div className="p-6 text-center text-muted-foreground">Laster hendelser...</div>
           ) : items.length === 0 ? (
-            <div className="p-6 text-center text-muted-foreground">Ingen hendelser funnet</div>
+            <div className="p-6">
+              <EmptyState
+                icons={[CalendarCheck, MessageCircle, Sparkles]}
+                title="Ingen hendelser enda"
+                description="Når ting begynner å skje, dukker alle hendelser rundt leads, kommentarer og e-poster opp her – i sanntid."
+              />
+            </div>
           ) : (
             <>
               {items.map((e) => (

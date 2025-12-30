@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { EmptyState } from "@/components/ui/empty-state";
+import { Building2, Briefcase, Handshake } from "lucide-react";
 import type { CompanyLeadCounts } from "@/types/api";
 
 type Company = {
@@ -37,8 +39,15 @@ export function CustomersClient() {
           onChange={(e) => setSearch(e.target.value)}
         />
       </div>
-      <div className="divide-y border rounded">
-        {filtered.map((c) => {
+      {filtered.length === 0 ? (
+        <EmptyState
+          icons={[Building2, Briefcase, Handshake]}
+          title="Ingen organisasjoner enda"
+          description="Legg til organisasjoner dere jobber med i dag – eller vil jobbe med i morgen."
+        />
+      ) : (
+        <div className="divide-y border rounded">
+          {filtered.map((c) => {
           const newOrInProgress = (c.leadCounts?.NEW ?? 0) + (c.leadCounts?.IN_PROGRESS ?? 0);
           const showActiveLead = newOrInProgress > 1;
 
@@ -63,7 +72,8 @@ export function CustomersClient() {
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
     </div>
   );
 }

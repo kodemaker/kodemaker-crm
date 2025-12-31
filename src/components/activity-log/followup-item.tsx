@@ -72,7 +72,7 @@ export function FollowupItem({
               }}
             />
           </div>
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 pr-10">
             <div className="flex items-start justify-between gap-4 text-xs text-muted-foreground mb-2.5">
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <div className="flex-1 min-w-0">
@@ -106,7 +106,7 @@ export function FollowupItem({
           </div>
         </div>
         {followup.assignedTo && (
-          <div className="absolute bottom-2 right-4">
+          <div className="absolute bottom-2 right-3">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Avatar className="size-6">
@@ -143,7 +143,7 @@ export function FollowupItem({
         <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
           <CompletionCheckbox completed={true} disabled={true} onClick={() => {}} />
         </div>
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 pr-10">
           <div className="flex items-start justify-between gap-4 text-xs text-muted-foreground mb-2.5">
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <div className="flex-1 min-w-0">
@@ -177,7 +177,7 @@ export function FollowupItem({
         </div>
       </div>
       {followup.assignedTo && (
-        <div className="absolute bottom-2 right-4">
+        <div className="absolute bottom-2 right-3">
           <Tooltip>
             <TooltipTrigger asChild>
               <Avatar className="size-6">

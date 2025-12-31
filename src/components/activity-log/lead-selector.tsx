@@ -86,10 +86,10 @@ export function LeadSelector({
           <Button
             variant="outline"
             role="combobox"
-            className="w-full justify-between text-sm font-normal"
+            className="w-full justify-between text-sm font-normal overflow-hidden"
           >
-            <span className="truncate flex-1 min-w-0 text-left">
-              {selectedLead ? truncateText(selectedLead.description, 60) : "Velg lead…"}
+            <span className="truncate flex-1 min-w-0 text-left overflow-hidden">
+              {selectedLead ? truncateText(selectedLead.description, 30) : "Velg lead…"}
             </span>
             {selectedLead ? (
               <ClearFilterButton onClear={() => {
@@ -146,7 +146,7 @@ export function LeadSelector({
                         onQueryChange("");
                       }}
                     >
-                      {truncateText(l.description, 60)}
+                      {truncateText(l.description, 30)}
                       <Check
                         className={cn(
                           "ml-auto h-4 w-4",

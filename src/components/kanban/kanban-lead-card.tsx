@@ -33,11 +33,10 @@ export function KanbanLeadCard({ lead, isDragOverlay = false }: KanbanLeadCardPr
     data: { lead },
   });
 
-  const style = transform
-    ? {
-        transform: CSS.Translate.toString(transform),
-      }
-    : undefined;
+  const style: React.CSSProperties = {
+    WebkitTouchCallout: "none", // Prevents iOS 3D Touch menu during drag
+    ...(transform && { transform: CSS.Translate.toString(transform) }),
+  };
 
   const cardContent = (
     <div className="space-y-2">

@@ -4,10 +4,11 @@ import { useState, useMemo } from "react";
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   useSensor,
   useSensors,
-  closestCenter,
+  rectIntersection,
   type DragStartEvent,
   type DragEndEvent,
 } from "@dnd-kit/core";
@@ -64,15 +65,19 @@ export function KanbanBoard() {
   // Fetch all leads (active + finished for the finished zone counts)
   const { data: leads = [], isLoading } = useSWR<ApiLead[]>("/api/leads");
 
-  // PointerSensor unifies mouse and touch for consistent mobile drag-and-drop
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        delay: 150,
-        tolerance: 5,
-      },
-    })
-  );
+  // Separate sensors for mouse and touch - TouchSensor handles mobile better than PointerSensor
+  const mouseSensor = useSensor(MouseSensor, {
+    activationConstraint: {
+      distance: 8, // Prevents accidental drags
+    },
+  });
+  const touchSensor = useSensor(TouchSensor, {
+    activationConstraint: {
+      delay: 100, // Shorter than before for responsiveness
+      tolerance: 8, // Higher tolerance for finger imprecision
+    },
+  });
+  const sensors = useSensors(mouseSensor, touchSensor);
 
   // Group leads by status
   const leadsByStatus = useMemo(() => {
@@ -219,7 +224,7 @@ export function KanbanBoard() {
       {/* Kanban board - horizontal scroll on mobile */}
       <DndContext
         sensors={sensors}
-        collisionDetection={closestCenter}
+        collisionDetection={rectIntersection}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
         onDragCancel={handleDragCancel}

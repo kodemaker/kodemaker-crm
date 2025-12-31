@@ -88,7 +88,7 @@ export function LeadSelect({
         items={leads}
         value={value}
         onChange={onChange}
-        getLabel={(l) => truncateText(l.description, 60)}
+        getLabel={(l) => truncateText(l.description, 40)}
         getValue={(l) => l.id}
         placeholder={placeholder}
         searchPlaceholder="Sok lead..."

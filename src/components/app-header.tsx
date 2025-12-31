@@ -32,7 +32,7 @@ export function AppHeader() {
               <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
                 <SheetTrigger asChild>
                   <button
-                    className="p-2 min-w-[44px] min-h-[44px] rounded bg-white/15 hover:bg-white/25 active:bg-white/35"
+                    className="flex items-center justify-center min-w-[44px] min-h-[44px] rounded hover:bg-white/15 active:bg-white/25"
                     aria-label="Open Menu"
                   >
                     <Menu className="h-5 w-5" />

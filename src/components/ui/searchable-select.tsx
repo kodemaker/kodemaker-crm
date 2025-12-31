@@ -137,7 +137,7 @@ export function SearchableSelect<T>({
           className={cn("w-full justify-between", className)}
           onKeyDown={handleTriggerKeyDown}
         >
-          <span className="truncate flex-1 min-w-0 text-left">{selectedLabel || placeholder}</span>
+          <span className="truncate flex-1 min-w-0 max-w-[calc(100%-2rem)] text-left">{selectedLabel || placeholder}</span>
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>

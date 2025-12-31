@@ -164,7 +164,7 @@ export function NewContactDialog({
           <DialogTitle>Ny kontakt</DialogTitle>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-2 gap-x-5 gap-y-6">
+          <form onSubmit={form.handleSubmit(onSubmit)} className="grid grid-cols-1 sm:grid-cols-2 gap-x-5 gap-y-6">
             <FormField
               control={form.control}
               name="firstName"
@@ -335,7 +335,7 @@ export function NewContactDialog({
               control={form.control}
               name="email"
               render={({ field }) => (
-                <FormItem className="col-span-2">
+                <FormItem className="sm:col-span-2">
                   <FormLabel>Epost</FormLabel>
                   <FormControl>
                     <Input {...field} />
@@ -374,7 +374,7 @@ export function NewContactDialog({
               control={form.control}
               name="description"
               render={({ field }) => (
-                <FormItem className="col-span-2">
+                <FormItem className="sm:col-span-2">
                   <FormLabel>Beskrivelse</FormLabel>
                   <FormControl>
                     <Textarea placeholder="Beskrivelse..." rows={3} {...field} />
@@ -383,7 +383,7 @@ export function NewContactDialog({
                 </FormItem>
               )}
             />
-            <div className="col-span-2 flex justify-end mt-6">
+            <div className="sm:col-span-2 flex justify-end mt-6">
               <Button type="submit" className="inline-flex items-center gap-1.5">
                 <Save className="h-4 w-4" /> Lagre
               </Button>

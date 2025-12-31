@@ -111,6 +111,10 @@ export function KanbanBoard() {
     setActiveId(event.active.id as string);
   };
 
+  const handleDragCancel = () => {
+    setActiveId(null);
+  };
+
   const handleDragEnd = async (event: DragEndEvent) => {
     const { active, over } = event;
 
@@ -218,6 +222,7 @@ export function KanbanBoard() {
         collisionDetection={closestCenter}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
+        onDragCancel={handleDragCancel}
       >
         <div className="flex-1 overflow-x-auto overflow-y-hidden">
           <div className="flex gap-3 p-4 h-full">

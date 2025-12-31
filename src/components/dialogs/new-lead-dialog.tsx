@@ -233,7 +233,7 @@ export function NewLeadDialog({
     const refreshContactId = selectedContact?.id ?? contactId;
     await Promise.all([
       globalMutate("/api/companies"),
-      globalMutate("/api/leads"),
+      globalMutate((key) => typeof key === "string" && key.startsWith("/api/leads")),
       globalMutate((key) => typeof key === "string" && key.startsWith("/api/contacts")),
       refreshCompanyId ? globalMutate(`/api/companies/${refreshCompanyId}`) : Promise.resolve(),
       refreshContactId ? globalMutate(`/api/contacts/${refreshContactId}`) : Promise.resolve(),

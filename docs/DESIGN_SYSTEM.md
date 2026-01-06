@@ -99,6 +99,32 @@ Dark mode color definitions exist in `globals.css` but are not currently activel
 - **500**: Medium (buttons, labels)
 - **600**: Semibold (headings)
 
+### Heading Hierarchy
+
+Use semantic HTML heading elements with consistent styling:
+
+- **h1** (`text-2xl font-semibold`): Page titles, main headings
+- **h2** (`text-lg font-medium`): Section headings within a page
+- **h3** (`text-base font-semibold`): Sub-section headings within cards or sections
+
+```tsx
+// Page title
+<h1 className="text-2xl font-semibold">Organisasjoner</h1>
+
+// Section heading
+<h2 className="text-lg font-medium mb-4">Aktivitetslogg</h2>
+
+// Sub-section heading
+<h3 className="text-base font-semibold mb-3">Siste nytt</h3>
+```
+
+**Guidelines**:
+
+- Maintain semantic hierarchy (h1 > h2 > h3)
+- Use `font-semibold` (600) for h1 and h3, `font-medium` (500) for h2
+- Avoid colons after headings - they should stand alone
+- Use appropriate bottom margins: `mb-4` for h2, `mb-3` for h3
+
 ## Button System
 
 ### Variants

@@ -72,7 +72,7 @@ export function FollowupItem({
               }}
             />
           </div>
-          <div className="flex-1 min-w-0 pr-10">
+          <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-4 text-xs text-muted-foreground mb-2.5">
               <div className="flex items-center gap-2 flex-1 min-w-0">
                 <div className="flex-1 min-w-0">
@@ -102,7 +102,7 @@ export function FollowupItem({
               </div>
               {showBadge && <Badge variant="secondary">Oppgave</Badge>}
             </div>
-            <div className="whitespace-pre-wrap text-sm">{followup.note}</div>
+            <div className="whitespace-pre-wrap text-sm pr-10">{followup.note}</div>
           </div>
         </div>
         {followup.assignedTo && (
@@ -143,7 +143,7 @@ export function FollowupItem({
         <div onClick={(e) => e.stopPropagation()} className="flex-shrink-0">
           <CompletionCheckbox completed={true} disabled={true} onClick={() => {}} />
         </div>
-        <div className="flex-1 min-w-0 pr-10">
+        <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-4 text-xs text-muted-foreground mb-2.5">
             <div className="flex items-center gap-2 flex-1 min-w-0">
               <div className="flex-1 min-w-0">
@@ -173,7 +173,7 @@ export function FollowupItem({
             </div>
             {showBadge && <Badge variant="secondary">Oppgave</Badge>}
           </div>
-          <div className="whitespace-pre-wrap text-sm">{followup.note}</div>
+          <div className="whitespace-pre-wrap text-sm pr-10">{followup.note}</div>
         </div>
       </div>
       {followup.assignedTo && (

@@ -362,7 +362,7 @@ export function ActivityLog({
       <div className="mt-6 space-y-6">
         <div className="bg-background rounded p-4">
           {openFollowups.length > 0 && (
-            <h3 className="text-sm font-medium mb-2">Krever handling:</h3>
+            <h3 className="text-base font-semibold mb-3">Krever handling</h3>
           )}
           {isLoadingOpenFollowups && openFollowups.length === 0 ? (
             <div className="p-3 text-sm text-muted-foreground">Laster…</div>
@@ -402,7 +402,7 @@ export function ActivityLog({
 
         <div className="bg-background rounded p-4">
           {recentActivities.length > 0 && (
-            <h3 className="text-sm font-medium mb-2">Siste nytt:</h3>
+            <h3 className="text-base font-semibold mb-3">Siste nytt</h3>
           )}
           {isLoadingRecentActivities && recentActivities.length === 0 ? (
             <div className="p-3 text-sm text-muted-foreground">Laster...</div>

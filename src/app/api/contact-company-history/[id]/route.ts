@@ -6,6 +6,7 @@ import { z } from "zod";
 import { requireApiAuth } from "@/lib/require-api-auth";
 
 const updateSchema = z.object({
+  companyId: z.number().optional(),
   startDate: z.string().optional(),
   endDate: z.string().optional().or(z.literal("")),
   role: z.string().optional(),
@@ -29,6 +30,9 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     );
   }
   const values: Record<string, unknown> = {};
+  if (parsed.data.companyId !== undefined) {
+    values.companyId = parsed.data.companyId;
+  }
   if (parsed.data.startDate !== undefined) {
     values.startDate = parsed.data.startDate;
   }

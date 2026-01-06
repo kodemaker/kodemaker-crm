@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Building2 } from "lucide-react";
+import { Building2, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
@@ -33,7 +33,8 @@ export function CompanyAffiliations({
   const previousPositions = history.filter((h) => h.endDate);
 
   // State for editing current position
-  const [isEnding, setIsEnding] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isMarkedAsEnded, setIsMarkedAsEnded] = useState(false);
   const [editCompany, setEditCompany] = useState<CompanyOption | null>(
     currentPosition ? { id: currentPosition.company.id, name: currentPosition.company.name } : null
   );
@@ -52,7 +53,8 @@ export function CompanyAffiliations({
 
   // Reset edit state when current position changes
   const resetEditState = () => {
-    setIsEnding(false);
+    setIsEditing(false);
+    setIsMarkedAsEnded(false);
     setEditCompany(null);
     setEditRole("");
     setEditStartDate(null);
@@ -66,27 +68,40 @@ export function CompanyAffiliations({
     setNewStartDate(new Date());
   };
 
-  async function handleEndPosition() {
-    if (!currentPosition || !editEndDate) return;
+  async function handleSavePosition() {
+    if (!currentPosition) return;
+    if (isMarkedAsEnded && !editEndDate) return;
 
     setIsSaving(true);
     try {
-      // Update company and role if changed
-      const updates: Record<string, unknown> = {
-        endDate: editEndDate.toISOString().slice(0, 10),
-      };
+      const updates: Record<string, unknown> = {};
 
+      // Always check for company changes
       if (editCompany && editCompany.id !== currentPosition.company.id) {
         updates.companyId = editCompany.id;
       }
+
+      // Always check for role changes
       if (editRole !== (currentPosition.role || "")) {
         updates.role = editRole || null;
       }
-      if (editStartDate) {
-        const newStart = editStartDate.toISOString().slice(0, 10);
-        if (newStart !== currentPosition.startDate) {
-          updates.startDate = newStart;
+
+      // Only include dates if marked as ended
+      if (isMarkedAsEnded) {
+        updates.endDate = editEndDate!.toISOString().slice(0, 10);
+        if (editStartDate) {
+          const newStart = editStartDate.toISOString().slice(0, 10);
+          if (newStart !== currentPosition.startDate) {
+            updates.startDate = newStart;
+          }
         }
+      }
+
+      // Don't send empty updates
+      if (Object.keys(updates).length === 0) {
+        toast.info("Ingen endringer å lagre");
+        resetEditState();
+        return;
       }
 
       const res = await fetch(`/api/contact-company-history/${currentPosition.id}`, {
@@ -97,16 +112,16 @@ export function CompanyAffiliations({
 
       if (!res.ok) {
         const error = await res.json();
-        toast.error(error.error || "Kunne ikke avslutte stilling");
+        toast.error(error.error || "Kunne ikke lagre endringer");
         return;
       }
 
-      toast.success("Stilling avsluttet");
+      toast.success(isMarkedAsEnded ? "Stilling avsluttet" : "Endringer lagret");
       resetEditState();
       onMutate();
     } catch (error) {
-      console.error("Failed to end position:", error);
-      toast.error("Kunne ikke avslutte stilling");
+      console.error("Failed to save position:", error);
+      toast.error("Kunne ikke lagre endringer");
     } finally {
       setIsSaving(false);
     }
@@ -162,14 +177,15 @@ export function CompanyAffiliations({
       {/* Current Position */}
       {currentPosition && (
         <div className="border rounded-lg p-4 bg-background">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <Building2 className="size-4 text-muted-foreground shrink-0" />
-                <span className="font-medium">{currentPosition.company.name}</span>
-                <Badge variant="secondary">Nåværende</Badge>
-              </div>
-              {!isEnding && (
+          {!isEditing ? (
+            // Display mode
+            <div className="flex items-start justify-between gap-4">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1">
+                  <Building2 className="size-4 text-muted-foreground shrink-0" />
+                  <span className="font-medium">{currentPosition.company.name}</span>
+                  <Badge variant="secondary">Nåværende</Badge>
+                </div>
                 <div className="text-sm text-muted-foreground ml-6">
                   {currentPosition.role && <span>{currentPosition.role}</span>}
                   {currentPosition.role && currentPosition.startDate && <span> · </span>}
@@ -177,34 +193,30 @@ export function CompanyAffiliations({
                     <span>Fra {formatDate(currentPosition.startDate)}</span>
                   )}
                 </div>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">Sluttet</span>
-              <Switch
-                checked={isEnding}
-                onCheckedChange={(checked) => {
-                  setIsEnding(checked);
-                  if (checked) {
-                    // Prepopulate edit fields
-                    setEditCompany({
-                      id: currentPosition.company.id,
-                      name: currentPosition.company.name,
-                    });
-                    setEditRole(currentPosition.role || "");
-                    setEditStartDate(
-                      currentPosition.startDate ? new Date(currentPosition.startDate) : null
-                    );
-                    setEditEndDate(new Date());
-                  }
+              </div>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => {
+                  setIsEditing(true);
+                  setIsMarkedAsEnded(false);
+                  setEditCompany({
+                    id: currentPosition.company.id,
+                    name: currentPosition.company.name,
+                  });
+                  setEditRole(currentPosition.role || "");
+                  setEditStartDate(
+                    currentPosition.startDate ? new Date(currentPosition.startDate) : null
+                  );
+                  setEditEndDate(new Date());
                 }}
-              />
+              >
+                <Pencil className="size-4" />
+              </Button>
             </div>
-          </div>
-
-          {/* Edit form when ending */}
-          {isEnding && (
-            <div className="mt-4 pt-4 border-t space-y-3">
+          ) : (
+            // Edit mode
+            <div className="space-y-3">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs text-muted-foreground mb-1">Firma</label>
@@ -224,34 +236,51 @@ export function CompanyAffiliations({
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Startdato</label>
-                  <DatePicker
-                    value={editStartDate}
-                    onValueChange={(date) => setEditStartDate(date ?? null)}
-                    placeholder="Velg dato"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs text-muted-foreground mb-1">Sluttdato</label>
-                  <DatePicker
-                    value={editEndDate}
-                    onValueChange={(date) => setEditEndDate(date ?? null)}
-                    placeholder="Velg dato"
-                  />
-                </div>
+
+              {/* Sluttet switch */}
+              <div className="flex items-center gap-2 pt-1">
+                <Switch
+                  id="sluttet-switch"
+                  checked={isMarkedAsEnded}
+                  onCheckedChange={setIsMarkedAsEnded}
+                />
+                <label htmlFor="sluttet-switch" className="text-sm cursor-pointer">
+                  Sluttet i stillingen
+                </label>
               </div>
-              <div className="flex justify-end gap-2">
+
+              {/* Date fields - only show when marked as ended */}
+              {isMarkedAsEnded && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">Startdato</label>
+                    <DatePicker
+                      value={editStartDate}
+                      onValueChange={(date) => setEditStartDate(date ?? null)}
+                      placeholder="Velg dato"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-muted-foreground mb-1">Sluttdato</label>
+                    <DatePicker
+                      value={editEndDate}
+                      onValueChange={(date) => setEditEndDate(date ?? null)}
+                      placeholder="Velg dato"
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-1">
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => setIsEnding(false)}
+                  onClick={resetEditState}
                   disabled={isSaving}
                 >
                   Avbryt
                 </Button>
-                <Button size="sm" onClick={handleEndPosition} disabled={isSaving}>
+                <Button size="sm" onClick={handleSavePosition} disabled={isSaving}>
                   {isSaving ? "Lagrer..." : "Lagre"}
                 </Button>
               </div>

@@ -1,0 +1,49 @@
+name: Feilrapport
+description: Rapporter noe som ikke fungerer som det skal
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Takk for at du tar deg tid til å rapportere en feil!
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Hva skjedde?
+      description: En tydelig beskrivelse av feilen
+      placeholder: Beskriv hva du forventet vs hva som faktisk skjedde
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steg for å reprodusere
+      description: Hvordan kan vi gjenskape dette?
+      placeholder: |
+        1. Gå til '...'
+        2. Klikk på '...'
+        3. Se feilen
+    validations:
+      required: true
+
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Alvorlighetsgrad
+      options:
+        - Lav - Liten ulempe
+        - Medium - Påvirker arbeidsflyten
+        - Høy - Blokkerer arbeid
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Ekstra kontekst
+      description: Skjermbilder, feilmeldinger eller annet nyttig
+      placeholder: Valgfritt - legg til annen kontekst her
+    validations:
+      required: false

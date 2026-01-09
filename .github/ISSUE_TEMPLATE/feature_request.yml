@@ -1,0 +1,46 @@
+name: Funksjonsforespørsel
+description: Foreslå en ny funksjon eller forbedring
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Takk for at du foreslår en forbedring!
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem eller motivasjon
+      description: Hvilket problem løser dette? Hvorfor trenger du det?
+      placeholder: Jeg er alltid frustrert når... / Det ville vært nyttig å...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Foreslått løsning
+      description: Hva ønsker du skal skje?
+      placeholder: Beskriv din ideelle løsning
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Hvor viktig er dette for deg?
+      options:
+        - Greit å ha
+        - Ville forbedret arbeidsflyten min
+        - Kritisk for min bruk
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativer eller midlertidige løsninger
+      description: Andre tilnærminger du har vurdert eller nåværende workarounds?
+      placeholder: Valgfritt
+    validations:
+      required: false
